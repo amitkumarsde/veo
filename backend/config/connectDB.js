@@ -1,16 +1,11 @@
 import mongoose from "mongoose";
-import dotenv from "dotenv";
 
-dotenv.config();
-
-const MONGO_URL = process.env.MONGO_URL;
-
-// Function to Connect to MongoDB.
+// Connect to MongoDB using the URL from the environment.
 const connectDB = async () => {
     try {
-        await mongoose.connect(MONGO_URL);     
-        console.log("MongoDB connected successfully!"); 
-    } 
+        await mongoose.connect(process.env.MONGO_URL);
+        console.log("MongoDB connected successfully!");
+    }
     catch (error) {
         console.error("MongoDB connection failed: ", error.message);
         process.exit(1);

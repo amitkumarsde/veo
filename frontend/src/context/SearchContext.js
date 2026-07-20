@@ -1,5 +1,7 @@
-import { createContext } from "react";
+import { createContext } from 'react';
 
-const SearchContext = createContext();
-
-export default SearchContext;
+// Holds the current search query, shared between the header input and the feed.
+export const SearchContext = createContext({
+    searchText: '',
+    setSearchText: () => {},
+});

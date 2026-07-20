@@ -1,57 +1,101 @@
-import { useContext } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useRef } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FaMagnifyingGlass, FaXmark, FaPlay, FaSun, FaMoon } from "react-icons/fa6";
 
-import AuthContext from "../context/AuthContext";
-import SearchContext from "../context/SearchContext";
-import SidebarContext from "../context/SidebarContext";
-import ThemeContext from "../context/ThemeContext";
-
-import "../styles/Header.css";
+import { useAuth } from "@/hooks/useAuth";
+import { useSearch } from "@/hooks/useSearch";
+import { useTheme } from "@/hooks/useTheme";
 
 const Header = () => {
 
-    const {user} = useContext(AuthContext);
-    const {searchText, setSearchText} = useContext(SearchContext);
-    const {isSidebar, setIsSidebar} = useContext(SidebarContext);
-    const {isTheme, setIsTheme} = useContext(ThemeContext);
+    const { user } = useAuth();
+    const { searchText, setSearchText } = useSearch();
+    const { isTheme, setIsTheme } = useTheme();
+    const navigate = useNavigate();
+    const searchRef = useRef(null);
 
-    // Toggles Sidebar 
-    const handleSidebar = () => setIsSidebar(!isSidebar);
+    // Focus the search box on "/" or ⌘/Ctrl-K.
+    useEffect(() => {
+        const onKey = (e) => {
+            const typing = /^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName);
+            if ((e.key === "k" && (e.metaKey || e.ctrlKey)) || (e.key === "/" && !typing)) {
+                e.preventDefault();
+                searchRef.current?.focus();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, []);
 
-    // Toggles dark/light Theme
-    const handleTheme = () => setIsTheme(!isTheme);
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        searchRef.current?.blur();
+        navigate("/");
+    };
 
-    return (       
-        <header>
-            {/* Left Div: Logo */}
-            <div className="logo">
-                <button onClick={handleSidebar}> <i className="fa-solid fa-bars"></i> </button>
-                <Link to='/' id="yt"> <i className="fa-brands fa-youtube"></i> YouTube </Link>
-            </div>
-            {/* Middle Div: Search bar */}
-            <div className="search-bar">
-                <div className="search-text">
-                    <input type="text" placeholder="Search.." value={searchText} onChange={e => setSearchText(e.target.value)} /> 
-                    <Link to='/' id="search-btn"> <i className="fa-solid fa-magnifying-glass"></i> </Link>
-                </div>
-                <div className="search-voice">
-                    <Link to='/'> <i className="fa-solid fa-microphone"></i> </Link>
-                </div>
-            </div>
-            {/* Right Div: User actions */}
-            <div className="user-actions">
-                <button id="theme-btn" onClick={handleTheme}> <i className={` fa-solid ${isTheme?"fa-sun":"fa-moon"} `}></i> </button>
-                { user ? (
-                    <div className="action">
-                        <Link to='/'> <i className="fa-regular fa-bell"></i> </Link>
-                        <Link to='/'> <i className="fa-solid fa-ellipsis-vertical"></i> </Link>
-                        <Link to={`/profile`} id="link1"> <img src={user.avatarURL} /> </Link>
+    const iconBtn = "grid h-10 w-10 place-items-center rounded-full text-muted transition hover:bg-surface-2 hover:text-fg";
+
+    return (
+        <header className="fixed inset-x-0 top-0 z-30 h-16 border-b border-border glass">
+            <div className="flex h-full items-center gap-2 px-4 sm:gap-3 sm:px-6">
+                {/* Brand */}
+                <Link to="/" className="flex shrink-0 items-center gap-2.5" aria-label="Veo home">
+                    <span className="grid h-9 w-9 place-items-center rounded-full bg-accent-gradient text-white shadow-lg glow">
+                        <FaPlay className="text-xs" />
+                    </span>
+                    <span className="hidden font-display text-2xl font-bold tracking-tight text-fg sm:inline">Veo</span>
+                </Link>
+
+                {/* Search */}
+                <form onSubmit={handleSubmit} className="flex flex-1 justify-center">
+                    <div className="flex h-10 w-full max-w-xl items-center gap-2.5 rounded-full border border-border bg-surface-2/60 px-4 transition focus-within:border-accent/60 focus-within:bg-surface focus-within:shadow-[0_0_0_4px_var(--accent-soft)]">
+                        <input
+                            ref={searchRef}
+                            type="text"
+                            placeholder="Search videos, channels…"
+                            value={searchText}
+                            onChange={(e) => setSearchText(e.target.value)}
+                            className="w-full bg-transparent text-sm text-fg outline-none placeholder:text-faint"
+                        />
+                        {searchText && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchText("")}
+                                className="shrink-0 text-faint transition hover:text-fg"
+                                aria-label="Clear search"
+                            >
+                                <FaXmark />
+                            </button>
+                        )}
+                        <button type="submit" aria-label="Search" className="shrink-0 text-faint transition hover:text-fg">
+                            <FaMagnifyingGlass className="text-sm" />
+                        </button>
                     </div>
-                ) : (
-                    <Link to='/signin' id="link2"> <i className="fa-regular fa-user"></i> Sign In </Link>
-                ) }
+                </form>
+
+                {/* Right actions */}
+                <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+                    <button onClick={() => setIsTheme(!isTheme)} className={iconBtn} aria-label="Toggle theme">
+                        {isTheme ? <FaSun /> : <FaMoon />}
+                    </button>
+                    {user ? (
+                        <Link to="/profile" aria-label="Your profile" className="ml-0.5">
+                            <img
+                                src={user.avatarURL}
+                                alt="avatar"
+                                className="h-9 w-9 rounded-full bg-surface-2 object-cover ring-2 ring-border transition hover:ring-accent"
+                            />
+                        </Link>
+                    ) : (
+                        <Link
+                            to="/signin"
+                            className="rounded-full bg-accent-gradient px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-accent/25 transition hover:opacity-90"
+                        >
+                            Sign in
+                        </Link>
+                    )}
+                </div>
             </div>
-            {/*  */}
         </header>
     );
 

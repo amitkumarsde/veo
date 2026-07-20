@@ -1,9 +1,7 @@
-import { createContext } from "react";
+import { createContext } from 'react';
 
-const ThemeContext = createContext({
-    isTheme: '',
+// Tracks the dark/light theme. `isTheme` is true for dark.
+export const ThemeContext = createContext({
+    isTheme: true,
     setIsTheme: () => {},
 });
-
-export default ThemeContext;
-

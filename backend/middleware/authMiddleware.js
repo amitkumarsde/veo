@@ -1,8 +1,6 @@
 import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
 
-dotenv.config();
-
+// Verify the JWT from the Authorization header and attach the user to the request.
 const auth = (req, res, next) => {
 
     const JWT_SECRET = process.env.JWT_SECRET;
@@ -21,12 +19,11 @@ const auth = (req, res, next) => {
     }
 
     try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
+        req.user = jwt.verify(token, JWT_SECRET);
         next();
-    } 
+    }
     catch (error) {
-        console.logconsole.error();
+        console.error(error);
         return res.status(401).json({ message: "Invalid or expired token." });
     }
 };
