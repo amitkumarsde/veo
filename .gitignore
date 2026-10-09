@@ -25,3 +25,6 @@ Desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+# Database backups written by npm run db:migrate (they contain password hashes)
+server/backups

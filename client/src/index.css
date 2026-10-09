@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* Dark mode is on when <html> has the "dark" class. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Light theme: warm paper + ink, one vermilion accent. */
+:root {
+    --canvas: #f6f4ef;
+    --surface: #fffdf9;
+    --surface-2: #edeae3;
+    --surface-3: #e2ddd3;
+    --border: #e0dbd1;
+    --border-strong: #c7bfb1;
+    --fg: #17140f;
+    --muted: #5e584e;
+    --faint: #8c8579;
+    --accent: #c8380f;
+    --accent-hover: #a92e0b;
+    --accent-soft: rgba(200, 56, 15, 0.09);
+    --on-accent: #ffffff;
+    --danger: #b42318;
+    --radius: 6px;
+    color-scheme: light;
+}
+
+/* Dark theme: warm ink + cream, brighter accent. */
+.dark {
+    --canvas: #0f0e0c;
+    --surface: #171512;
+    --surface-2: #1f1c18;
+    --surface-3: #2a2621;
+    --border: #2b2722;
+    --border-strong: #423c34;
+    --fg: #f3efe7;
+    --muted: #aaa397;
+    --faint: #776f64;
+    --accent: #ff6a3d;
+    --accent-hover: #ff8763;
+    --accent-soft: rgba(255, 106, 61, 0.12);
+    --on-accent: #1a0903;
+    --danger: #ff6b5b;
+    color-scheme: dark;
+}
+
+@theme inline {
+    --color-canvas: var(--canvas);
+    --color-surface: var(--surface);
+    --color-surface-2: var(--surface-2);
+    --color-surface-3: var(--surface-3);
+    --color-border: var(--border);
+    --color-border-strong: var(--border-strong);
+    --color-fg: var(--fg);
+    --color-muted: var(--muted);
+    --color-faint: var(--faint);
+    --color-accent: var(--accent);
+    --color-accent-hover: var(--accent-hover);
+    --color-accent-soft: var(--accent-soft);
+    --color-on-accent: var(--on-accent);
+    --color-danger: var(--danger);
+    --radius-ui: var(--radius);
+
+    --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Bricolage Grotesque", "Inter", ui-sans-serif, sans-serif;
+}
+
+@layer base {
+    html {
+        background-color: var(--canvas);
+    }
+    body {
+        font-family: var(--font-sans);
+        background-color: var(--canvas);
+        color: var(--fg);
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+        font-feature-settings: "cv11", "ss01";
+    }
+    h1, h2, h3 {
+        font-family: var(--font-display);
+        letter-spacing: -0.02em;
+    }
+    button:not(:disabled) {
+        cursor: pointer;
+    }
+    ::selection {
+        background: var(--accent);
+        color: var(--on-accent);
+    }
+    /* Clear focus outline for keyboard users only. */
+    :focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 3px;
+        border-radius: 2px;
+    }
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-strong) transparent;
+    }
+    dialog::backdrop {
+        background: rgba(10, 8, 6, 0.55);
+    }
+}
+
+@layer utilities {
+    .no-scrollbar {
+        scrollbar-width: none;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    /* Moving grey fill for loading placeholders. */
+    .shimmer {
+        background: linear-gradient(100deg, var(--surface-2) 30%, var(--surface-3) 50%, var(--surface-2) 70%);
+        background-size: 200% 100%;
+        animation: shimmer 1.4s ease-in-out infinite;
+    }
+    /* Outlined display numbers (Trending ranks). */
+    .text-outline {
+        color: transparent;
+        -webkit-text-stroke: 1.5px var(--accent);
+    }
+    .animate-rise {
+        animation: rise 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+    }
+}
+
+@keyframes shimmer {
+    from { background-position: 200% 0; }
+    to { background-position: -200% 0; }
+}
+
+@keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Thin progress bar for slow actions. */
+@keyframes slide {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(250%); }
+}
+.progress-indeterminate {
+    animation: slide 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+        scroll-behavior: auto !important;
+    }
+}
