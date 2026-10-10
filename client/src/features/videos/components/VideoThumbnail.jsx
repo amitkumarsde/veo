@@ -2,7 +2,7 @@ import { Link } from "react-router";
 
 import { preloadPage } from "@/app/page-loaders";
 
-// Thumbnail linking to the video. Hidden from screen readers because the title link next to it goes to the same place.
+// Thumbnail link to the video, hidden from screen readers because the title link goes to the same place.
 const VideoThumbnail = ({ video }) => (
     <Link
         to={`/video/${video.videoId}`}

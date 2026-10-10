@@ -8,7 +8,7 @@ import HomePage from "@/pages/HomePage";
 import NotFoundPage from "@/pages/NotFoundPage";
 import RouteErrorPage from "@/pages/RouteErrorPage";
 
-// The page module's default export becomes the route component; the router waits for the chunk before switching.
+// Loads a page file and uses its default export as the route screen.
 const lazyPage = (name) => async () => ({ Component: (await pageLoaders[name]()).default });
 
 export const router = createBrowserRouter([

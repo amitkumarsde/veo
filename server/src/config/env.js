@@ -11,13 +11,11 @@ const commaList = z.preprocess(blankToUndefined, z.string().default(""))
 
 const envSchema = z.object({
     NODE_ENV: z.preprocess(blankToUndefined, z.enum(["development", "production"]).default("development")),
-    PORT: z.preprocess(blankToUndefined, z.coerce.number().int().positive().default(5001)),
+    PORT: z.preprocess(blankToUndefined, z.coerce.number().int().positive().default(5000)),
     MONGO_URL: z.string({ error: "is required" }).trim().min(1, "is required"),
     JWT_SECRET: z.string({ error: "is required" }).min(1, "is required"),
-    JWT_EXPIRES_IN: z.preprocess(blankToUndefined, z.string().default("2d")),
     CORS_ORIGINS: commaList,
-    TRUST_PROXY: z.preprocess(blankToUndefined, z.coerce.number().int().min(0).optional()),
-    ALLOW_PASSWORD_RESET_BY_EMAIL: flag(true),
+    ALLOW_PASSWORD_RESET_BY_EMAIL: flag(false),
     STORAGE_ENDPOINT: optionalText,
     STORAGE_ACCESS_KEY: optionalText,
     STORAGE_SECRET_KEY: optionalText,
@@ -26,7 +24,7 @@ const envSchema = z.object({
     STORAGE_PUBLIC_URL: optionalText,
     STORAGE_FORCE_PATH_STYLE: flag(true),
     MAX_IMAGE_MB: megabytes(5),
-    MAX_VIDEO_MB: megabytes(200),
+    MAX_VIDEO_MB: megabytes(50),
 }).superRefine((env, ctx) => {
     const isProduction = env.NODE_ENV === "production";
     if (isProduction && env.JWT_SECRET.length < 32) {
@@ -57,10 +55,9 @@ export const config = Object.freeze({
     isProduction,
     port: env.PORT,
     mongoUrl: env.MONGO_URL,
-    jwt: { secret: env.JWT_SECRET, expiresIn: env.JWT_EXPIRES_IN },
-    corsOrigins: env.CORS_ORIGINS,
-    // Render puts one proxy in front of the app; the real client IP is needed for rate limits.
-    trustProxy: env.TRUST_PROXY ?? (isProduction ? 1 : 0),
+    jwtSecret: env.JWT_SECRET,
+    corsOrigins: env.CORS_ORIGINS.map(trimSlashes),
+    trustProxy: isProduction ? 1 : 0,
     allowPasswordReset: env.ALLOW_PASSWORD_RESET_BY_EMAIL,
     storage: env.STORAGE_ENDPOINT
         ? {

@@ -2,8 +2,7 @@ import { Navigate, Outlet, useLocation } from "react-router";
 
 import { useAuth } from "@/features/auth/useAuth";
 
-// Route guard for the UI only; the API enforces every permission itself.
-// Signed-out visitors go to sign in; with `requireChannel`, users without a channel go to create one.
+// Sends signed-out visitors to sign in, and with `requireChannel` users without a channel to create one.
 const RequireAuth = ({ requireChannel = false }) => {
     const { user } = useAuth();
     const location = useLocation();

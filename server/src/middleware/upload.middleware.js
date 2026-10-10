@@ -8,21 +8,21 @@ import multer from "multer";
 
 import { FILE_EXTENSIONS, FILE_KINDS } from "../constants/uploads.js";
 import { badRequest, fieldError, payloadTooLarge, serviceUnavailable } from "../errors/app-error.js";
-import { isStorageEnabled } from "../services/storage.service.js";
+import { UPLOADS_UNAVAILABLE_MESSAGE, isStorageEnabled } from "../services/storage.service.js";
 
-// Uploads land in a temp folder first (big videos never sit in memory), get checked, then a service stores them.
+// Uploads go to a temp folder first (big videos never sit in memory), get checked, then get stored.
 const TEMP_DIR = path.join(os.tmpdir(), "veo-uploads");
 fs.mkdirSync(TEMP_DIR, { recursive: true });
 
 const HEADER_BYTES = 16;
 const MAX_TEXT_FIELDS = 20;
 const MAX_TEXT_FIELD_BYTES = 64 * 1024;
-// ISO-BMFF brands that are still images or audio, not playable video.
+// File brands that are still images or audio, not playable video.
 const NON_VIDEO_BRANDS = new Set(["heic", "heix", "hevc", "hevx", "heim", "heis", "mif1", "msf1", "avif", "avis", "M4A ", "M4B ", "M4P "]);
 
 const typeNames = (kind) => kind.types.map((type) => FILE_EXTENSIONS[type].toUpperCase()).join(", ");
 
-// The real type from the first bytes, so a renamed HTML or SVG file can't pass as an image.
+// Finds the real type from the first bytes, so a renamed HTML or SVG file can't pass as an image.
 const detectContentType = (header) => {
     const ascii = (start, end) => header.toString("latin1", start, end);
     if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) return "image/jpeg";
@@ -37,7 +37,7 @@ const detectContentType = (header) => {
 
 const removeFile = (filePath) => fs.promises.rm(filePath, { force: true }).catch(() => {});
 
-// Multer storage that enforces each field's own size limit while streaming and keeps the first bytes for type detection.
+// Saves each file to a temp file, stops it when it's over its size limit, and keeps its first bytes to check the type.
 const createTempStorage = (fieldKinds) => ({
     _handleFile(req, file, callback) {
         const kind = FILE_KINDS[fieldKinds[file.fieldname]];
@@ -81,8 +81,7 @@ const checkUploadedFiles = (files, fieldKinds) => {
     return uploads;
 };
 
-// Accepts the given file fields, e.g. acceptUploads({ banner: "image", logo: "image" }).
-// Text fields arrive on req.body; checked files on req.uploads as { path, size, contentType }.
+// Accepts the given file fields; text fields go to req.body and checked files to req.uploads.
 export const acceptUploads = (fieldKinds) => {
     const fieldNames = Object.keys(fieldKinds);
     const parseMultipart = multer({
@@ -96,7 +95,7 @@ export const acceptUploads = (fieldKinds) => {
         fileFilter: (req, file, callback) => {
             const kind = FILE_KINDS[fieldKinds[file.fieldname]];
             if (!kind) return callback(badRequest(`Unexpected file field "${file.fieldname}".`));
-            if (!isStorageEnabled()) return callback(serviceUnavailable("File uploads are not available right now. Please try again later."));
+            if (!isStorageEnabled()) return callback(serviceUnavailable(UPLOADS_UNAVAILABLE_MESSAGE));
             if (!kind.types.includes(file.mimetype)) {
                 return callback(fieldError(400, file.fieldname, `"${file.fieldname}" must be a ${typeNames(kind)} ${kind.label}.`));
             }

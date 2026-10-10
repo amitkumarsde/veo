@@ -1,4 +1,4 @@
-// Each page is its own chunk, downloaded on first visit. Links can start the download early on hover.
+// Each page loads as its own file on first visit; hovering a link starts the download early.
 export const pageLoaders = {
     signIn: () => import("@/pages/SignInPage"),
     signUp: () => import("@/pages/SignUpPage"),

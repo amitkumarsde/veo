@@ -53,7 +53,7 @@ const Header = () => {
         return () => window.removeEventListener("keydown", onKeyDown);
     }, []);
 
-    // On the home page results follow the typing; elsewhere search runs on Enter.
+    // On the home page results update while typing; on other pages search runs on Enter.
     const handleSearchChange = (value) => {
         setSearchText(value);
         if (isHome) navigate(buildSearchUrl(location, value.trim()), { replace: true });

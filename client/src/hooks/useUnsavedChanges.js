@@ -3,8 +3,7 @@ import { useBlocker } from "react-router";
 
 import { useConfirm } from "@/features/confirm/useConfirm";
 
-// Asks before leaving a page with unsaved changes or a running upload (in-app navigation and closing the tab).
-// Call the returned `allowLeave()` right before navigating away after a successful save.
+// Asks before leaving a page with unsaved changes or a running upload; call `allowLeave()` after saving.
 export const useUnsavedChanges = (hasUnsavedChanges) => {
     const confirm = useConfirm();
     const unsavedRef = useRef(hasUnsavedChanges);

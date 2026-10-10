@@ -10,17 +10,29 @@ import { deleteVideosWhere } from "./video.service.js";
 
 const NAME_TAKEN = "That channel name is taken. Try another.";
 const ONE_CHANNEL_ONLY = "You already have a channel. Each account can have only one.";
+const CHANNEL_ID_ATTEMPTS = 5;
 
 const toPublicChannel = (channel) => {
     const { channelId, channelName, owner, description, channelBannerURL, channelAvatarURL, subscribers, createdAt } = channel;
     return { channelId, channelName, owner, description, channelBannerURL, channelAvatarURL, subscribers: Math.max(0, subscribers ?? 0), createdAt };
 };
 
-// The unique indexes are the real guard against two requests at once; this turns their error into a clear message.
+// The unique indexes are the real guard against two requests at once; this gives their error a clear message.
 const rethrowDuplicate = (error) => {
     if (!isDuplicateKeyError(error)) throw error;
     if (error.keyPattern?.owner) throw conflict(ONE_CHANNEL_ONLY);
+    if (error.keyPattern?.channelId) throw conflict("Please try again.");
     throw fieldError(409, "channelName", NAME_TAKEN);
+};
+
+// Makes the URL id from the name ("My Chess!" -> "my-chess"), adding a number if it's taken.
+const createChannelId = async (channelName) => {
+    const base = slugify(channelName) || "channel";
+    for (let attempt = 0; attempt < CHANNEL_ID_ATTEMPTS; attempt += 1) {
+        const candidate = attempt === 0 && base !== "channel" ? base : `${base}-${Math.floor(1000 + Math.random() * 9000)}`;
+        if (!(await channelRepository.existsById(candidate))) return candidate;
+    }
+    return `${base}-${Date.now().toString(36)}`;
 };
 
 const findOwnChannel = async (channelId, username) => {
@@ -43,13 +55,10 @@ export const getChannel = async (channelId, viewer) => {
 };
 
 export const createChannel = async (owner, { channelName, description }, { banner, logo }) => {
-    const channelId = slugify(channelName);
-    if (!channelId) throw fieldError(400, "channelName", "Use at least one letter or number.");
     if (await channelRepository.existsByOwner(owner)) throw conflict(ONE_CHANNEL_ONLY);
-    if ((await channelRepository.existsById(channelId)) || (await channelRepository.existsByName(channelName))) {
-        throw fieldError(409, "channelName", NAME_TAKEN);
-    }
+    if (await channelRepository.existsByName(channelName)) throw fieldError(409, "channelName", NAME_TAKEN);
 
+    const channelId = await createChannelId(channelName);
     const channel = channelRepository.build({ channelId, channelName, owner, description });
     await withStoredFiles(async (store) => {
         if (banner) channel.channelBannerURL = await store(banner, STORAGE_FOLDERS.channelBanners, owner);

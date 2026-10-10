@@ -3,7 +3,7 @@ import { isDuplicateKeyError } from "../utils/mongo-errors.js";
 
 export const subscriptionRepository = {
     exists: (channelId, user) => Subscription.exists({ channelId, user }),
-    // An upsert, so two clicks at once insert only one subscription. True when one was added.
+    // Adds the subscription only if it's missing, so two clicks at once add one; true when one was added.
     add: async (channelId, user) => {
         try {
             const result = await Subscription.updateOne({ channelId, user }, { $setOnInsert: { channelId, user } }, { upsert: true });

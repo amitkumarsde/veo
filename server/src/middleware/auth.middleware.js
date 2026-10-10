@@ -15,7 +15,7 @@ export const requireAuth = async (req, res, next) => {
     next();
 };
 
-// Public routes that show a little more to signed-in viewers (e.g. "you liked this"). Bad tokens count as signed out.
+// For public routes that show a bit more to signed-in visitors; a bad token counts as signed out.
 export const optionalAuth = async (req, res, next) => {
     const token = readBearerToken(req);
     if (token) req.user = (await resolveSession(token)) ?? undefined;

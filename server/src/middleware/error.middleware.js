@@ -18,8 +18,7 @@ const MULTER_MESSAGES = {
 
 export const notFoundHandler = (req, res) => sendError(res, 404, `Route not found: ${req.method} ${req.path}`);
 
-// Turns every error into the same JSON shape. Unexpected errors are logged with the request id and never leak details.
-// eslint-disable-next-line no-unused-vars
+// Turns every error into the same JSON shape; unexpected errors are logged and their details stay hidden.
 export const errorHandler = (error, req, res, next) => {
     if (error instanceof AppError) return sendError(res, error.statusCode, error.message, error.fields ? { fields: error.fields } : {});
 
@@ -38,5 +37,5 @@ export const errorHandler = (error, req, res, next) => {
 
     logger.error("Unhandled error", { requestId: req.id, method: req.method, path: req.path, error: error?.stack ?? String(error) });
     if (res.headersSent) return next(error);
-    return sendError(res, 500, "Something went wrong. Please try again.", { requestId: req.id });
+    return sendError(res, 500, "Something went wrong. Please try again.");
 };

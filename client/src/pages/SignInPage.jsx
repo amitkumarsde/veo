@@ -11,7 +11,7 @@ import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useForm } from "@/hooks/useForm";
 import { signIn as requestSignIn } from "@/services/user.service";
 
-// Only in-app paths are accepted as a return address.
+// I only accept in-app paths as the page to return to.
 const safeReturnPath = (path) => (typeof path === "string" && path.startsWith("/") && !path.startsWith("//") ? path : "/");
 
 const SignInPage = () => {

@@ -45,7 +45,7 @@ export const useVideoForm = () => {
         clearError("thumbnail");
     }, [pickThumbnail, clearError]);
 
-    // The fields to send, or null after showing what is missing. The video source is sent only when it changed.
+    // Returns the fields to send, or null after showing what is missing; the video is sent only if it changed.
     const collectFields = () => {
         const title = form.values.title.trim();
         const description = form.values.description.trim();

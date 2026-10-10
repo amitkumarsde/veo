@@ -1,6 +1,6 @@
 import { Children, cloneElement, useId } from "react";
 
-// Label, optional hint and error around one form control, wired together for screen readers.
+// Label, hint and error around one input, linked together for screen readers.
 const Field = ({ label, hint, error, children }) => {
     const generatedId = useId();
     const control = Children.only(children);

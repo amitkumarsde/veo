@@ -69,14 +69,14 @@ const DeleteAccountSection = ({ hasChannel, onDeleted }) => {
     );
 };
 
-// Your account: details, edit, sign out, your channel, and delete account.
+// Account page: details, edit, sign out, channel and delete account.
 const ProfilePage = () => {
     const { user, signOut } = useAuth();
     const navigate = useNavigate();
     const channel = useResource((signal) => getChannel(user.channelId, signal), user.channelId ?? null).data;
     useDocumentTitle("Your profile");
 
-    // Leave the protected page first, so the sign-in guard doesn't redirect to /signin instead.
+    // We leave the protected page first, so the sign-in guard doesn't send us to /signin.
     const leave = async (message) => {
         await navigate("/", { replace: true, flushSync: true });
         signOut();

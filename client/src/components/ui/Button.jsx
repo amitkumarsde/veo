@@ -11,7 +11,7 @@ const TONES = {
     danger: "text-danger hover:opacity-75",
 };
 
-// Solid button, reserved for the main action on a screen. `as` renders e.g. a router Link with the same look.
+// Solid button for the main action; `as` lets a router Link use the same look.
 export const Button = ({ as: Component = "button", variant = "primary", size = "md", className = "", type, ...props }) => (
     <Component
         type={Component === "button" ? type ?? "button" : undefined}

@@ -1,5 +1,4 @@
-// The login lives in localStorage: the API is on another site (Render vs Vercel), where cookies would be third-party
-// and blocked by many browsers. The CSP in vercel.json limits what scripts could read it.
+// I keep the login in localStorage because the API is on another site, where cookies are often blocked.
 export const TOKEN_KEY = "token";
 export const USER_KEY = "user";
 

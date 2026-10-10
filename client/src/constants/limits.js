@@ -1,8 +1,9 @@
-// Mirrors server/src/constants/limits.js; the server enforces them again.
+// Same limits as server/src/constants/limits.js; the server checks them again.
 export const LIMITS = Object.freeze({
     name: { min: 2, max: 50 },
     bio: 200,
-    password: { min: 6, max: 72 },
+    // bcrypt only uses the first 72 bytes of a password.
+    password: { min: 6, maxBytes: 72 },
     channelName: 50,
     channelDescription: 1000,
     title: 100,

@@ -14,7 +14,7 @@ const VideoCard = ({ video, showChannel = true }) => (
         <p className="mt-1 text-[13px] text-muted">
             {showChannel && (
                 <>
-                    <Link to={`/channel/${video.channelId}`} onMouseEnter={preloadPage("channel")} className="transition-colors hover:text-accent">
+                    <Link to={`/channel/${encodeURIComponent(video.channelId)}`} onMouseEnter={preloadPage("channel")} className="transition-colors hover:text-accent">
                         {video.channel?.channelName ?? video.channelId}
                     </Link>
                     <span aria-hidden className="mx-1.5 text-faint">·</span>

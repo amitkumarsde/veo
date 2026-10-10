@@ -4,7 +4,7 @@ import { nextSubscriberCount, useSubscriptionToggle } from "@/features/channels/
 import { useOptimisticAction } from "@/hooks/useOptimisticAction";
 import { setLike } from "@/services/video.service";
 
-// Like and Subscribe on the video page. Each updates at once and only undoes its own change if saving fails.
+// Like and Subscribe on the video page; each shows at once and is undone only if saving fails.
 export const useVideoEngagement = ({ video, updateVideo, isSignedIn }) => {
     const like = useOptimisticAction();
 

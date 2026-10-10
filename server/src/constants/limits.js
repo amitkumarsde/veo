@@ -1,4 +1,4 @@
-// Text limits shared by validation and the models. The client mirrors them in src/constants/limits.js.
+// Text limits for validation and the models; the client has the same ones in src/constants/limits.js.
 export const LIMITS = Object.freeze({
     name: { min: 2, max: 50 },
     bio: 200,

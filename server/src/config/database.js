@@ -5,7 +5,6 @@ import { logger } from "../utils/logger.js";
 
 export const connectDatabase = async () => {
     mongoose.set("strictQuery", true);
-    // Indexes are built automatically only in development; production runs `npm run db:migrate`.
     await mongoose.connect(config.mongoUrl, {
         autoIndex: !config.isProduction,
         maxPoolSize: 10,

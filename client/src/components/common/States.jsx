@@ -36,7 +36,7 @@ export const CardSkeleton = () => (
     </div>
 );
 
-// The right screen for a failed page load: server down, not found, or a general error with "Try again".
+// Picks the right screen for a failed load: server down, not found, or a general error.
 export const LoadErrorState = ({ error, onRetry, title, notFoundTitle, notFoundMessage, notFoundAction }) => {
     if (isServerUnreachable(error)) return <ServiceUnavailable onRetry={onRetry} />;
     if (isNotFound(error) && notFoundTitle) return <ErrorState title={notFoundTitle} message={notFoundMessage} action={notFoundAction} />;

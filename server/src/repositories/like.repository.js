@@ -3,7 +3,7 @@ import { isDuplicateKeyError } from "../utils/mongo-errors.js";
 
 export const likeRepository = {
     exists: (videoId, user) => Like.exists({ videoId, user }),
-    // An upsert, so two clicks at once insert only one like. True when a like was added.
+    // Adds the like only if it's missing, so two clicks at once add one like; true when one was added.
     add: async (videoId, user) => {
         try {
             const result = await Like.updateOne({ videoId, user }, { $setOnInsert: { videoId, user } }, { upsert: true });

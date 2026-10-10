@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 
 import { useLatest } from "@/hooks/useLatest";
 
-// Starts loading a little before the user reaches the end of the list.
+// Starts loading a bit before the end of the list is reached.
 const PRELOAD_MARGIN = "600px";
 
 // Returns a ref for an element at the end of a list; `onReach` runs when it scrolls into view.

@@ -4,8 +4,9 @@ const positiveNumber = (value, fallback) => {
 };
 
 export const env = Object.freeze({
-    apiUrl: import.meta.env.VITE_API_URL || "http://localhost:5001",
-    // Must match MAX_IMAGE_MB / MAX_VIDEO_MB on the server, which checks again.
+    // I drop a trailing slash so joined URLs never get a double slash.
+    apiUrl: (import.meta.env.VITE_API_URL || "http://localhost:5000").replace(/\/+$/, ""),
+    // These must match MAX_IMAGE_MB and MAX_VIDEO_MB on the server, which checks again.
     maxImageMb: positiveNumber(import.meta.env.VITE_MAX_IMAGE_MB, 5),
-    maxVideoMb: positiveNumber(import.meta.env.VITE_MAX_VIDEO_MB, 200),
+    maxVideoMb: positiveNumber(import.meta.env.VITE_MAX_VIDEO_MB, 50),
 });

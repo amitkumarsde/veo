@@ -2,7 +2,7 @@
 
 Veo is a website where people can watch, upload and share videos.
 
-- **Live site:** https://veo-tan.vercel.app/
+- **Live site:** https://veo-lilac.vercel.app/
 - **Source code:** https://github.com/amitkumarsde/veo
 
 ---
@@ -63,6 +63,7 @@ Veo is a full-stack video sharing platform, similar in idea to YouTube. Anyone c
 
 ```text
 veo/
+├── .github/workflows/       # CI checks run on every push
 ├── client/                  # React website
 │   ├── public/              # Static files
 │   └── src/
@@ -75,7 +76,7 @@ veo/
 │       └── utils/           # Small helper functions
 │
 ├── server/                  # Express API
-│   ├── scripts/             # Database migration script
+│   ├── scripts/             # Database migration and pre-deploy check
 │   └── src/
 │       ├── routes/          # API URLs
 │       ├── controllers/     # Read the request, send the response
@@ -93,7 +94,7 @@ veo/
 
 ## Requirements
 
-- Node.js 22.9 or newer
+- Node.js 24 (the version Render, Vercel and CI use)
 - A MongoDB database (local or MongoDB Atlas)
 - A Supabase Storage bucket (only needed for uploads)
 
@@ -114,7 +115,7 @@ veo/
    - `STORAGE_*` — your Supabase Storage details (leave them empty to run without uploads)
 
 3. **Create the client settings file.** Copy `client/.env.example` to `client/.env` and set:
-   - `VITE_API_URL` — the server address (for example `http://localhost:5001`, matching `PORT` in `server/.env`)
+   - `VITE_API_URL` — the server address (for example `http://localhost:5000`, matching `PORT` in `server/.env`)
 
 ---
 
@@ -148,26 +149,48 @@ Open two terminals in the project root.
 | `npm run build` | Builds the website for production |
 | `npm run lint` | Checks the client code for problems |
 | `npm run db:migrate` | Updates the database to the current format and builds indexes |
+| `npm run check` | Lints and builds the client and checks the server starts. Run it before every push |
 
 ---
 
 ## Deployment
 
+Both sites deploy automatically when you push to `main`. GitHub Actions (`.github/workflows/ci.yml`) runs `npm run check` on every push, so a broken commit shows a red ✗ on GitHub.
+
 ### Server (Render)
 
 1. Create a Web Service and set **Root Directory** to `server`.
-2. Build command: `npm install`
+2. Build command: `npm ci` (installs exactly what `package-lock.json` lists)
 3. Start command: `npm start`
 4. Health check path: `/health`
-5. Add the settings from `server/.env.example` as environment variables, with `NODE_ENV=production`.
-6. Set `CORS_ORIGINS` to your Vercel website address.
-7. Run `npm run db:migrate` once against the production database after deploying.
+5. Auto-Deploy: **After CI Checks Pass**, so a commit that fails the checks is never deployed.
+6. Environment variables (Render does not read `.env` files; they are not in the repository):
+
+   | Variable | Value |
+   |---|---|
+   | `NODE_ENV` | `production` |
+   | `MONGO_URL` | your MongoDB Atlas connection string |
+   | `JWT_SECRET` | at least 32 characters; use Render's **Generate** button |
+   | `CORS_ORIGINS` | your Vercel address, e.g. `https://veo.vercel.app` (comma separated if several) |
+   | `ALLOW_PASSWORD_RESET_BY_EMAIL` | `false` unless you want reset by email only |
+   | `STORAGE_*` | all four of endpoint, keys and public URL, or none (uploads off) |
+
+   If a setting is missing or wrong, the deploy log lists each problem under "Invalid environment configuration".
+7. After changing variables, use **Save, rebuild, and deploy**.
+8. Run `npm run db:migrate` once against the production database (back it up first).
 
 ### Client (Vercel)
 
 1. Import the project and set **Root Directory** to `client`.
-2. Add `VITE_API_URL` with your Render server address.
+2. Add `VITE_API_URL` with your Render server address, e.g. `https://veo-api.onrender.com`. The build stops with a clear error if it is missing.
 3. Deploy. `vercel.json` already handles page routing and security headers.
+4. `VITE_API_URL` is built into the site, so after changing it, **redeploy**.
+
+### Before each deploy
+
+1. Run `npm run check` locally.
+2. If you added a database index or changed how data is stored, run `npm run db:migrate` against production.
+3. Push to `main`, then confirm the Render log shows `Server listening on port …`.
 
 ---
 
@@ -175,8 +198,9 @@ Open two terminals in the project root.
 
 - Each account can have only one channel.
 - Supported uploads: JPG, PNG, WebP, GIF images and MP4, WebM, OGG videos.
-- Default upload limits: 5 MB for images and 200 MB for videos.
-- Password reset works with the email only (no email is sent). Set `ALLOW_PASSWORD_RESET_BY_EMAIL=false` to turn it off.
-- On Render's free plan the server sleeps when idle, so the first visit can take up to a minute.
+- Default upload limits: 5 MB for images and 50 MB for videos (the largest file Supabase's free plan accepts).
+- "Forgot password" is off by default: it works with the email only (no email is sent), so anyone who knows an address could take over that account. Set `ALLOW_PASSWORD_RESET_BY_EMAIL=true` only if you accept that.
+- Channel links use an id made from the first name (e.g. `/channel/my-chess`) and never change on rename. If that id is taken, a number is added.
+- On Render's free plan the server sleeps when idle. If it doesn't answer within about 10 seconds the site shows "temporarily unavailable", keeps checking, and loads the page by itself once the server is up (up to about a minute).
 
 ---

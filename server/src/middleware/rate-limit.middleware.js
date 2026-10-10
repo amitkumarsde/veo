@@ -1,6 +1,7 @@
-// In-memory fixed-window limiter: at most `max` hits per `windowMs` for each key (default: client IP).
-// Enough for a single instance; several instances would need a shared store.
-export const rateLimit = ({ windowMs, max, message = "Too many attempts. Please try again later.", keyFor = (req) => req.ip, onLimit }) => {
+// In-memory limiter: at most `max` hits per `windowMs` for each key, keeping at most MAX_KEYS keys.
+const MAX_KEYS = 50_000;
+
+export const rateLimit = ({ windowMs, max, message, keyFor = (req) => req.ip, onLimit }) => {
     const hits = new Map();
 
     setInterval(() => {
@@ -13,6 +14,7 @@ export const rateLimit = ({ windowMs, max, message = "Too many attempts. Please 
         const key = keyFor(req) ?? "unknown";
         let entry = hits.get(key);
         if (!entry || entry.resetAt <= now) {
+            if (!entry && hits.size >= MAX_KEYS) hits.delete(hits.keys().next().value);
             entry = { count: 0, resetAt: now + windowMs };
             hits.set(key, entry);
         }

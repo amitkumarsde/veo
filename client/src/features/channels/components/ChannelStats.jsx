@@ -1,6 +1,6 @@
 import { formatCount } from "@/utils/format";
 
-// Totals across all the channel's videos, as worked out by the server.
+// Totals for all the channel's videos, counted by the server.
 const ChannelStats = ({ channel }) => {
     const stats = channel.stats ?? {};
     const totals = [

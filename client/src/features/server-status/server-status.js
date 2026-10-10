@@ -1,12 +1,16 @@
-// Tracks whether the API answers. Render's free plan sleeps when idle, so the first request can take up to a minute;
-// "waking" lets the UI say so instead of looking broken. "offline" means retries ran out without an answer.
+import { env } from "@/config/env";
+
+// Tracks if the API answers; while it doesn't, we check again every few seconds so pages can reload by themselves.
 export const SERVER_STATUS = Object.freeze({ unknown: "unknown", waking: "waking", online: "online", offline: "offline" });
 
 const WAKING_NOTICE_DELAY_MS = 3500;
+const RECHECK_INTERVAL_MS = 5000;
+const RECHECK_TIMEOUT_MS = 10_000;
 
 let status = SERVER_STATUS.unknown;
 let pendingRequests = 0;
 let wakingTimer = null;
+let isRechecking = false;
 const listeners = new Set();
 
 const setStatus = (next) => {
@@ -22,16 +26,41 @@ export const subscribeToServerStatus = (listener) => {
     return () => listeners.delete(listener);
 };
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// "/" answers as soon as the server is running, without the database or a sign-in.
+const apiAnswers = async () => {
+    try {
+        const response = await fetch(`${env.apiUrl}/`, { cache: "no-store", signal: AbortSignal.timeout(RECHECK_TIMEOUT_MS) });
+        return response.ok;
+    } catch {
+        return false;
+    }
+};
+
+const recheckUntilOnline = async () => {
+    if (isRechecking) return;
+    isRechecking = true;
+    while (status !== SERVER_STATUS.online) {
+        await sleep(RECHECK_INTERVAL_MS);
+        if (status !== SERVER_STATUS.online && (await apiAnswers())) setStatus(SERVER_STATUS.online);
+    }
+    isRechecking = false;
+};
+
+// Returns whether we counted the request; the matching mark call gets this back when the request ends.
 export const markRequestStarted = () => {
-    if (status === SERVER_STATUS.online) return;
+    if (status === SERVER_STATUS.online) return false;
     pendingRequests += 1;
     wakingTimer ??= setTimeout(() => {
         wakingTimer = null;
         if (pendingRequests > 0 && status !== SERVER_STATUS.online) setStatus(SERVER_STATUS.waking);
     }, WAKING_NOTICE_DELAY_MS);
+    return true;
 };
 
-const finishRequest = () => {
+const finishRequest = (wasCounted) => {
+    if (!wasCounted) return;
     pendingRequests = Math.max(0, pendingRequests - 1);
     if (pendingRequests === 0) {
         clearTimeout(wakingTimer);
@@ -40,18 +69,19 @@ const finishRequest = () => {
 };
 
 // Any real answer from the API, even an error reply, means it is up.
-export const markServerReachable = () => {
-    finishRequest();
+export const markServerReachable = (wasCounted) => {
+    finishRequest(wasCounted);
     setStatus(SERVER_STATUS.online);
 };
 
-export const markServerUnreachable = () => {
-    finishRequest();
+export const markServerUnreachable = (wasCounted) => {
+    finishRequest(wasCounted);
     setStatus(SERVER_STATUS.offline);
+    recheckUntilOnline();
 };
 
 // A request that ended without telling us anything (e.g. cancelled).
-export const markRequestSettled = () => {
-    finishRequest();
+export const markRequestSettled = (wasCounted) => {
+    finishRequest(wasCounted);
     if (pendingRequests === 0 && status === SERVER_STATUS.waking) setStatus(SERVER_STATUS.unknown);
 };

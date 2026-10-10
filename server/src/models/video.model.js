@@ -28,7 +28,7 @@ const videoSchema = new mongoose.Schema({
     uploadDate: { type: Date, default: Date.now },
 }, { versionKey: false });
 
-// One index per list filter + sort order used by the feed, channel pages and the studio.
+// One index for each list filter and sort order used by the feed, channel pages and studio.
 videoSchema.index({ uploadDate: -1, _id: -1 });
 videoSchema.index({ views: -1, _id: -1 });
 videoSchema.index({ category: 1, uploadDate: -1, _id: -1 });

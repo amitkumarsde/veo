@@ -11,7 +11,7 @@ import { deleteChannelCascade, findChannelIdByOwner } from "./channel.service.js
 import { deleteStoredFiles, withStoredFiles } from "./storage.service.js";
 import { deleteVideosWhere } from "./video.service.js";
 
-// The account as the client sees it: never the password hash or internal fields.
+// The account as the client sees it, without the password hash or internal fields.
 export const toPublicUser = async (user) => ({
     _id: String(user._id),
     username: user.username,
@@ -48,7 +48,7 @@ export const updateProfile = async (userId, { name, bio, removeAvatar }, { avata
     return toPublicUser(user);
 };
 
-// Deletes the account and everything that points to its @handle, so a future user with the same handle starts clean.
+// Deletes the account and everything linked to its @handle, so a new user with that handle starts clean.
 export const deleteAccount = async (userId, password) => {
     const user = await findExistingUser(userRepository.findByIdWithPassword, userId);
     // 403, not 401: the session is valid, only the confirmation is wrong.

@@ -7,6 +7,7 @@ import { Button, TextButton } from "@/components/ui/Button";
 import Field from "@/components/ui/Field";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { LIMITS } from "@/constants/limits";
+import { getNewPasswordError } from "@/features/auth/password-rules";
 import { useAuth } from "@/features/auth/useAuth";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useForm } from "@/hooks/useForm";
@@ -31,7 +32,7 @@ const SignUpPage = () => {
         if (form.showErrors({
             name: name.length < LIMITS.name.min && `Enter your name (at least ${LIMITS.name.min} characters).`,
             email: !EMAIL_PATTERN.test(email) && "Enter a valid email address.",
-            password: password.length < LIMITS.password.min && `Use at least ${LIMITS.password.min} characters.`,
+            password: getNewPasswordError(password),
         })) return;
         setIsSubmitting(true);
         try {
@@ -58,7 +59,7 @@ const SignUpPage = () => {
                 <Input type="email" autoComplete="email" {...form.bind("email")} />
             </Field>
             <Field label="Password" hint={`At least ${LIMITS.password.min} characters`} error={form.errors.password}>
-                <PasswordInput autoComplete="new-password" maxLength={LIMITS.password.max} {...form.bind("password")} />
+                <PasswordInput autoComplete="new-password" maxLength={LIMITS.password.maxBytes} {...form.bind("password")} />
             </Field>
             <Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? "Creating account…" : "Create account"}</Button>
         </AuthLayout>

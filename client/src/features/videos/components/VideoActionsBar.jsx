@@ -9,7 +9,7 @@ import { formatCount, pluralize } from "@/utils/format";
 // Channel and Subscribe (or Edit for the owner) on one side; Like and Share on the other.
 const VideoActionsBar = ({ video, isOwner, engagement }) => {
     const channelName = video.channel?.channelName ?? video.channelId;
-    const channelPath = `/channel/${video.channelId}`;
+    const channelPath = `/channel/${encodeURIComponent(video.channelId)}`;
 
     return (
         <div className="mt-6 flex flex-wrap items-center justify-between gap-6 border-b border-border pb-6">

@@ -2,8 +2,7 @@ import { badRequest } from "../errors/app-error.js";
 
 const REQUEST_PARTS = ["params", "query", "body"];
 
-// Checks request parts against Zod schemas. Clean values go to req.validated.{params,query,body};
-// bad input gets a 400 with one message per field.
+// Checks the request with Zod; clean values go to req.validated and bad input gets a 400 with a message per field.
 export const validate = (schemas) => (req, res, next) => {
     req.validated = {};
     for (const part of REQUEST_PARTS) {

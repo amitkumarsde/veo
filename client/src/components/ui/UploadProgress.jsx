@@ -1,7 +1,7 @@
 import IndeterminateBar from "@/components/common/IndeterminateBar";
 import { formatTimeLeft } from "@/utils/format";
 
-// Thin progress line with "Uploading 42% · about 1 min left", then "Finishing up…" while the server stores the files.
+// Upload progress line, then "Finishing up…" while the server saves the files.
 const UploadProgress = ({ progress }) => {
     if (!progress) return null;
     const isSent = progress.percent >= 100;

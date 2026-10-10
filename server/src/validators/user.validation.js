@@ -7,7 +7,7 @@ const name = z.string({ error: "Name is required." }).trim()
     .min(LIMITS.name.min, `Name must be at least ${LIMITS.name.min} characters.`)
     .max(LIMITS.name.max, `Name must be at most ${LIMITS.name.max} characters.`);
 
-// Existing passwords are only compared with their hash, so any non-empty value of sane size is accepted.
+// Current passwords are only compared with their hash, so any non-empty value of a sane size is fine.
 const currentPassword = (message) => z.string({ error: message }).min(1, message).max(1024, message);
 
 export const userSchemas = {

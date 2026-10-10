@@ -40,7 +40,7 @@ const HomeIntro = ({ user }) => (
     </>
 );
 
-// Category chips are optional: if they fail to load the feed still works.
+// Category buttons are optional; if they fail to load, the feed still works.
 const useCategoryOptions = () => {
     const [categories, setCategories] = useState([]);
     useEffect(() => {
@@ -82,7 +82,7 @@ const HomePage = () => {
     const clearFilters = () => setSearchParams(new URLSearchParams());
 
     if (videos.error) {
-        // A filter the server rejects (e.g. a hand-edited URL) would fail again, so "Try again" clears it instead.
+        // A filter the server rejects would fail again, so "Try again" clears the filters instead.
         const retry = getStatus(videos.error) === 400 ? clearFilters : videos.reload;
         return <LoadErrorState error={videos.error} onRetry={retry} title="Couldn't load videos" />;
     }

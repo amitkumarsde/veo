@@ -14,7 +14,7 @@ export const channelRepository = {
     findCardsByIds: (channelIds) => Channel.find({ channelId: { $in: channelIds } }).select(CARD_FIELDS).lean(),
     existsById: (channelId) => Channel.exists({ channelId }),
     existsByOwner: (owner) => Channel.exists({ owner }),
-    // The collation must match the unique index so "Chess" and "chess" count as the same name.
+    // Must use the same case rule as the unique index, so "Chess" and "chess" count as one name.
     existsByName: (channelName, exceptChannelId) =>
         Channel.exists({ channelName, ...(exceptChannelId ? { channelId: { $ne: exceptChannelId } } : {}) }).collation(CHANNEL_NAME_COLLATION),
     incrementSubscribers: (channelIds, amount) => Channel.updateMany({ channelId: { $in: channelIds } }, { $inc: { subscribers: amount } }),

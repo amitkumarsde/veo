@@ -13,7 +13,7 @@ const SHAPES = {
     round: "h-24 w-24 rounded-full",
 };
 
-// Pick an image by click or drag and drop, with a preview. Without `onRemove` the image can only be replaced.
+// Picks an image by click or drag and drop with a preview; without `onRemove` it can only be replaced.
 const ImagePicker = ({ id, shape = "thumbnail", currentUrl = "", file = null, removed = false, onPick, onRemove, fallback, label = "image", ...ariaProps }) => {
     const inputRef = useRef(null);
     const [isDragging, setIsDragging] = useState(false);

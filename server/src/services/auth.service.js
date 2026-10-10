@@ -42,7 +42,7 @@ export const signIn = async ({ email, password }) => {
     return { token: signAccessToken(user._id), user: await toPublicUser(user) };
 };
 
-// By product decision there is no emailed code: knowing the email is enough. Disable with ALLOW_PASSWORD_RESET_BY_EMAIL=false.
+// Knowing the email is enough here, so this works only when ALLOW_PASSWORD_RESET_BY_EMAIL=true.
 export const resetPassword = async ({ email, newPassword }) => {
     if (!config.allowPasswordReset) throw forbidden("Password reset is turned off. Please contact support.");
     const user = await userRepository.findByEmailForUpdate(email);
@@ -52,13 +52,14 @@ export const resetPassword = async ({ email, newPassword }) => {
     await user.save();
 };
 
-// The signed-in user for a bearer token, or null. Tokens issued before the last password change are rejected.
+// Returns the signed-in user for a token, or null; tokens from before the last password change don't work.
 export const resolveSession = async (token) => {
     const claims = verifyAccessToken(token);
     if (!claims || !mongoose.isValidObjectId(claims.sub)) return null;
     const user = await userRepository.findSessionById(claims.sub);
     if (!user) return null;
-    const changedAtSeconds = user.passwordChangedAt ? Math.floor(user.passwordChangedAt.getTime() / 1000) : 0;
+    // Tokens only store whole seconds, so I round up and also reject tokens from the same second as the change.
+    const changedAtSeconds = user.passwordChangedAt ? Math.ceil(user.passwordChangedAt.getTime() / 1000) : 0;
     if (claims.iat < changedAtSeconds) return null;
     return { id: String(user._id), username: user.username };
 };

@@ -1,4 +1,4 @@
-// A row of text choices (categories, sort order). Toggle buttons rather than ARIA tabs, since they filter in place.
+// A row of text buttons (categories, sort order) that filter the list in place.
 const TextTabs = ({ options, value, onChange, label, className = "" }) => (
     <div role="group" aria-label={label} className={`no-scrollbar flex gap-6 overflow-x-auto ${className}`}>
         {options.map((option) => {

@@ -9,7 +9,7 @@ import { userSchemas } from "../validators/user.validation.js";
 
 const FIFTEEN_MINUTES = 15 * 60 * 1000;
 
-// Per client IP: slows down password guessing and spam sign-ups.
+// Limits by visitor IP to slow down password guessing and spam sign-ups.
 const authLimit = rateLimit({ windowMs: FIFTEEN_MINUTES, max: 20, message: "Too many attempts. Please try again in 15 minutes." });
 const resetLimit = rateLimit({ windowMs: FIFTEEN_MINUTES, max: 5, message: "Too many password reset attempts. Please try again in 15 minutes." });
 

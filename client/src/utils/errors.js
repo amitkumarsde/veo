@@ -12,7 +12,7 @@ export const getFieldErrors = (error) => error?.response?.data?.fields ?? {};
 // True when a request was cancelled on purpose (e.g. a newer search replaced it).
 export const isCancelled = (error) => error?.code === "ERR_CANCELED";
 
-// No answer from the API at all, or the host answered that the app is down (Render sleeping/suspended).
+// No answer from the server at all, or the host says the app is down (Render asleep or suspended).
 export const isServerUnreachable = (error) => !isCancelled(error) && (!error?.response || GATEWAY_STATUSES.has(getStatus(error)));
 
 export const isNotFound = (error) => getStatus(error) === 404;

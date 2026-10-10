@@ -15,7 +15,7 @@ const MODE_OPTIONS = [
     { value: VIDEO_SOURCES.link, label: "Paste a link" },
 ];
 
-// The video as an uploaded file OR a pasted link. `currentUploadUrl` is the already stored file on the edit page.
+// The video as an uploaded file or a pasted link; `currentUploadUrl` is the saved file on the edit page.
 const VideoSourceField = ({ id, mode, onModeChange, link, onLinkChange, file, onFileChange, currentUploadUrl = "", ...ariaProps }) => {
     const inputRef = useRef(null);
     const fileUrl = useObjectUrl(file);

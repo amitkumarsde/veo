@@ -10,9 +10,11 @@ import { usePagedList } from "@/hooks/usePagedList";
 import { addComment, deleteComment, editComment, listComments } from "@/services/comment.service";
 import { getErrorMessage } from "@/utils/errors";
 import { pluralize } from "@/utils/format";
+import { removeList } from "@/utils/list-cache";
 
 const PAGE_SIZE = 20;
 const getCommentKey = (comment) => comment.commentId;
+const listKey = (videoId, sort) => `comments|${videoId}|${sort}`;
 
 // Comments for one video. `onCountChange(delta)` keeps the video's comment total in step.
 const CommentSection = ({ videoId, commentCount, user, onCountChange }) => {
@@ -21,16 +23,22 @@ const CommentSection = ({ videoId, commentCount, user, onCountChange }) => {
         ({ cursor, signal }) => listComments(videoId, { sort, cursor, limit: PAGE_SIZE }, signal),
         [videoId, sort],
     );
-    const comments = usePagedList(fetchPage, { key: `comments|${videoId}|${sort}`, getItemKey: getCommentKey });
+    const comments = usePagedList(fetchPage, { key: listKey(videoId, sort), getItemKey: getCommentKey });
     const { setItems } = comments;
+
+    // I drop the cached lists for the other sort orders so they load fresh.
+    const forgetOtherSorts = () => {
+        for (const option of COMMENT_SORT_OPTIONS) if (option.value !== sort) removeList(listKey(videoId, option.value));
+    };
 
     const handleAdd = async (text) => {
         try {
             const comment = await addComment(videoId, text);
-            // Show it where it belongs: first when newest-first, last only once the end of the list is loaded.
+            // We show it where it belongs: first for newest, last only when the whole list is loaded.
             if (sort === "newest") setItems((items) => [comment, ...items]);
             else if (!comments.hasMore) setItems((items) => [...items, comment]);
             onCountChange(1);
+            forgetOtherSorts();
             return true;
         } catch (error) {
             toast.error(getErrorMessage(error, "Couldn't post your comment."));
@@ -42,6 +50,7 @@ const CommentSection = ({ videoId, commentCount, user, onCountChange }) => {
         try {
             const updated = await editComment(videoId, commentId, text);
             setItems((items) => items.map((comment) => (comment.commentId === commentId ? updated : comment)));
+            forgetOtherSorts();
             return true;
         } catch (error) {
             toast.error(getErrorMessage(error, "Couldn't save your comment."));
@@ -54,6 +63,7 @@ const CommentSection = ({ videoId, commentCount, user, onCountChange }) => {
             await deleteComment(videoId, commentId);
             setItems((items) => items.filter((comment) => comment.commentId !== commentId));
             onCountChange(-1);
+            forgetOtherSorts();
             return true;
         } catch (error) {
             toast.error(getErrorMessage(error, "Couldn't delete the comment."));

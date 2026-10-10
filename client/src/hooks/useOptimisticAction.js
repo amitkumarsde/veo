@@ -3,8 +3,7 @@ import { toast } from "react-toastify";
 
 import { getErrorMessage } from "@/utils/errors";
 
-// Shows a change at once, then keeps the server's answer, or undoes the change when saving fails.
-// One action at a time: extra clicks while saving are ignored.
+// Shows a change at once and undoes it if saving fails; extra clicks while saving are ignored.
 export const useOptimisticAction = () => {
     const pendingRef = useRef(false);
     const [isPending, setIsPending] = useState(false);

@@ -65,7 +65,7 @@ const StudioVideos = ({ channelId, onVideoDeleted }) => {
     );
 };
 
-// Your channel workspace: totals, edit or delete the channel, and your videos.
+// Channel workspace: totals, edit or delete the channel, and its videos.
 const StudioPage = () => {
     const { user, updateUser, refreshUser } = useAuth();
     const confirm = useConfirm();
@@ -74,7 +74,7 @@ const StudioPage = () => {
     const [isDeleting, setIsDeleting] = useState(false);
     useDocumentTitle("Studio");
 
-    // The channel was deleted elsewhere (another tab or device): pick up the account's current state.
+    // If the channel was deleted elsewhere (another tab or device), we reload the account.
     const channelIsGone = isNotFound(error);
     useEffect(() => {
         if (channelIsGone) refreshUser().catch(() => {});
@@ -120,8 +120,8 @@ const StudioPage = () => {
                 eyebrow="Your studio"
                 actions={(
                     <>
-                        <TextButton as={Link} to={`/channel/${channelId}`}>View channel</TextButton>
-                        <TextButton as={Link} to={`/update-channel/${channelId}`}>Edit details</TextButton>
+                        <TextButton as={Link} to={`/channel/${encodeURIComponent(channelId)}`}>View channel</TextButton>
+                        <TextButton as={Link} to={`/update-channel/${encodeURIComponent(channelId)}`}>Edit details</TextButton>
                         <TextButton onClick={handleDeleteChannel} disabled={isDeleting} tone="danger">{isDeleting ? "Deleting…" : "Delete"}</TextButton>
                     </>
                 )}

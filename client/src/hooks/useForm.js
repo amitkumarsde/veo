@@ -39,7 +39,7 @@ export const useForm = (initialValues) => {
         return true;
     };
 
-    // Server errors go under matching fields (renamed via `aliases`, e.g. { videoUrl: "source" }); anything else is a toast.
+    // Server errors go under their fields (renamed by `aliases`); anything else shows as a toast.
     const showServerError = (error, fallback, aliases = {}) => {
         const shown = {};
         for (const [field, message] of Object.entries(getFieldErrors(error))) {

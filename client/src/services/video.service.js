@@ -13,5 +13,5 @@ export const deleteVideo = (videoId) => http.delete(`/videos/${encodeId(videoId)
 
 export const setLike = (videoId, liked) => http.put(`/videos/${encodeId(videoId)}/like`, { liked }).then(unwrap);
 
-// Counting a view is best effort and must never bother the viewer.
+// Counting a view is best effort, so errors are ignored.
 export const recordView = (videoId) => http.post(`/videos/${encodeId(videoId)}/views`).catch(() => {});

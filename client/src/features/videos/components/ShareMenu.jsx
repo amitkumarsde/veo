@@ -17,7 +17,7 @@ const shareDestinations = (title, url) => {
     ];
 };
 
-// Share: the device share sheet (when available), copy link, and common sites.
+// Share menu: the phone's share sheet when there is one, copy link, and common sites.
 const ShareMenu = ({ title }) => {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef(null);

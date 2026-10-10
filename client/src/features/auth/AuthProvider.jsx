@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
         });
     }, []);
 
-    // Skips the update if the user signed out while the request was in flight.
+    // We skip the update if the user signed out while the request was running.
     const refreshUser = useCallback(async () => {
         const latest = await getCurrentUser();
         if (readToken()) updateUser(latest);
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }) => {
         return () => setUnauthorizedHandler(() => {});
     }, [signOut]);
 
-    // The stored copy shows instantly; the server's copy replaces it (a 401 signs out via the HTTP layer).
+    // We show the saved user at once, then replace it with the server's copy.
     useEffect(() => {
         if (!readToken()) return;
         getCurrentUser()

@@ -4,7 +4,7 @@ import { ThemeContext } from "@/features/theme/ThemeContext";
 
 const THEME_KEY = "theme";
 
-// public/theme-init.js already applied the saved (or device) theme before the first paint.
+// public/theme-init.js already set the theme before the page showed.
 const readInitialTheme = () => document.documentElement.classList.contains("dark");
 
 export const ThemeProvider = ({ children }) => {
@@ -15,7 +15,7 @@ export const ThemeProvider = ({ children }) => {
         try {
             localStorage.setItem(THEME_KEY, isDark ? "dark" : "light");
         } catch {
-            // Storage can be blocked (private mode); the choice then lasts for this visit only.
+            // If storage is blocked (private mode), the choice lasts for this visit only.
         }
     }, [isDark]);
 

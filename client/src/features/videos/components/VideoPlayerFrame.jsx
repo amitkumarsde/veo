@@ -1,6 +1,6 @@
 import { getPlayback } from "@/features/videos/playback";
 
-// Plays uploads and direct links in a <video> (metadata only until play), YouTube links in its embed player.
+// Plays files and direct links in a <video> tag, and YouTube links in the YouTube player.
 const VideoPlayerFrame = ({ video }) => {
     const playback = getPlayback(video);
 

@@ -128,7 +128,7 @@ export const updateVideo = async (videoId, uploader, { title, description, categ
     return toVideoDetail(video);
 };
 
-// Children are deleted first, so if this stops half way, running it again finishes the job.
+// I delete child records first, so if this stops half way, running it again finishes the job.
 export const deleteVideosWhere = async (filter) => {
     const videos = await videoRepository.findStorageInfo(filter);
     if (!videos.length) return;

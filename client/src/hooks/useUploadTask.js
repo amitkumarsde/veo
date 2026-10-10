@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { uploadOptions } from "@/services/http";
 
-// Runs one upload at a time with progress. Leaving the page cancels it, so nothing finishes (or redirects) unseen.
+// Runs one upload with progress; leaving the page cancels it.
 export const useUploadTask = () => {
     const [progress, setProgress] = useState(null);
     const controllerRef = useRef(null);

@@ -1,4 +1,4 @@
-// Loaded lists are kept for a few minutes so going Back shows them instantly at the same scroll spot.
+// I keep loaded lists for a few minutes, so going Back shows them at once.
 const MAX_AGE_MS = 5 * 60 * 1000;
 const cache = new Map();
 

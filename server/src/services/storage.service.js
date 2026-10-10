@@ -8,7 +8,7 @@ import { FILE_EXTENSIONS } from "../constants/uploads.js";
 import { serviceUnavailable } from "../errors/app-error.js";
 import { logger } from "../utils/logger.js";
 
-// Public files in Supabase Storage over its S3 API. The bucket and its public access are set up in the Supabase dashboard.
+// Stores public files in Supabase Storage through its S3 API; the bucket is set up in the Supabase dashboard.
 const settings = config.storage;
 const client = settings
     ? new S3Client({
@@ -20,7 +20,7 @@ const client = settings
     : null;
 
 const S3_DELETE_BATCH = 1000;
-const UNAVAILABLE_MESSAGE = "File uploads are not available right now. Please try again later.";
+export const UPLOADS_UNAVAILABLE_MESSAGE = "File uploads are not available right now. Please try again later.";
 
 let bucketReady = false;
 let bucketSetup = null;
@@ -40,7 +40,7 @@ const checkBucketExists = async () => {
         await client.send(new HeadBucketCommand({ Bucket: settings.bucket }));
     } catch (error) {
         const status = error?.$metadata?.httpStatusCode;
-        // Keys with limited permissions may not be allowed to inspect the bucket itself.
+        // Keys with limited rights may not be allowed to look at the bucket itself.
         const isBadCredentials = ["InvalidAccessKeyId", "SignatureDoesNotMatch"].includes(error?.name ?? error?.Code);
         if (status === 403 && !isBadCredentials) return;
         if (status === 404 || error?.name === "NotFound") {
@@ -50,7 +50,7 @@ const checkBucketExists = async () => {
     }
 };
 
-// Retried until it succeeds once, so a storage outage at startup doesn't disable uploads for good.
+// We retry until it works once, so a storage outage at startup doesn't turn uploads off for good.
 const ensureBucketReady = async () => {
     if (bucketReady) return;
     bucketSetup ??= checkBucketExists()
@@ -76,14 +76,14 @@ export const initStorage = async () => {
 
 const ownerSegment = (owner) => String(owner).replace(/[^A-Za-z0-9_-]/g, "_") || "user";
 
-// Streams a checked temp file into the bucket and returns its public URL. Keys are never reused.
+// Sends a checked temp file to the bucket and returns its public URL; keys are never reused.
 const uploadFile = async (file, folder, owner) => {
-    if (!client) throw serviceUnavailable(UNAVAILABLE_MESSAGE);
+    if (!client) throw serviceUnavailable(UPLOADS_UNAVAILABLE_MESSAGE);
     try {
         await ensureBucketReady();
     } catch (error) {
         logger.error("Storage unavailable", { error: describeStorageError(error) });
-        throw serviceUnavailable(UNAVAILABLE_MESSAGE);
+        throw serviceUnavailable(UPLOADS_UNAVAILABLE_MESSAGE);
     }
     const key = `${folder}/${ownerSegment(owner)}/${randomUUID()}.${FILE_EXTENSIONS[file.contentType]}`;
     await new Upload({
@@ -104,10 +104,10 @@ const keyFromUrl = (url) => {
     return url.slice(settings.publicUrl.length + 1) || null;
 };
 
-// True only for files this app stored; pasted links and external images are never ours to delete.
+// True only for files we stored; pasted links and outside images are never ours to delete.
 export const isStoredUrl = (url) => keyFromUrl(url) !== null;
 
-// Never throws: a leftover file must not fail the user's request.
+// Never throws, because a leftover file must not fail the request.
 export const deleteStoredFiles = async (...urls) => {
     const keys = [...new Set(urls.flat(Infinity).map(keyFromUrl).filter(Boolean))];
     for (let start = 0; start < keys.length; start += S3_DELETE_BATCH) {
@@ -123,7 +123,7 @@ export const deleteStoredFiles = async (...urls) => {
     }
 };
 
-// Runs `work` with a `store(file, folder, owner)` function; if `work` fails, files it stored are deleted again.
+// Runs `work` with a `store` function; if `work` fails, we delete the files it stored.
 export const withStoredFiles = async (work) => {
     const storedUrls = [];
     const store = async (file, folder, owner) => {

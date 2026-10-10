@@ -8,7 +8,7 @@ import { listVideos } from "@/services/video.service";
 const TRENDING_COUNT = 4;
 const MIN_TO_SHOW = 2;
 
-// The most-watched videos. Hidden when there are too few to make a row, or when they fail to load.
+// The most-watched videos; hidden when there are too few or they fail to load.
 const TrendingSection = () => {
     const fetchTrending = useCallback(({ signal }) => listVideos({ sort: "popular", limit: TRENDING_COUNT }, signal), []);
     const trending = usePagedVideos(fetchTrending, "home|trending");

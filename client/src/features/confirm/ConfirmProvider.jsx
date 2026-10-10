@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { Button, TextButton } from "@/components/ui/Button";
 import { ConfirmContext } from "@/features/confirm/ConfirmContext";
 
-// One shared "Are you sure?" dialog. The native <dialog> handles Esc, focus trapping and the backdrop.
+// One shared confirm dialog; the browser's <dialog> handles Esc, focus and the backdrop.
 export const ConfirmProvider = ({ children }) => {
     const dialogRef = useRef(null);
     const resolveRef = useRef(null);
@@ -44,7 +44,7 @@ export const ConfirmProvider = ({ children }) => {
                         <h2 id={titleId} className="text-xl font-bold">{options.title}</h2>
                         {options.message && <p id={messageId} className="mt-2 text-[15px] leading-relaxed text-muted">{options.message}</p>}
                         <div className="mt-8 flex items-center justify-end gap-6">
-                            <TextButton onClick={() => answer(false)} tone="fg">{options.cancelLabel ?? "Cancel"}</TextButton>
+                            <TextButton onClick={() => answer(false)} tone="fg">Cancel</TextButton>
                             <Button variant={options.danger ? "danger" : "primary"} size="sm" onClick={() => answer(true)} autoFocus>
                                 {options.confirmLabel ?? "Confirm"}
                             </Button>

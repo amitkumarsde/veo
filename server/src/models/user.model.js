@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import { LIMITS } from "../constants/limits.js";
 
 const userSchema = new mongoose.Schema({
-    // The permanent public @handle; channels, videos, comments, likes and subscriptions refer to it.
+    // The permanent public @handle that channels, videos, comments, likes and subscriptions point to.
     username: { type: String, required: true, trim: true, unique: true },
     name: { type: String, trim: true, default: "", maxlength: LIMITS.name.max },
     email: { type: String, required: true, trim: true, lowercase: true, unique: true, maxlength: LIMITS.email },

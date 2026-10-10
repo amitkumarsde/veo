@@ -3,8 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useLatest } from "@/hooks/useLatest";
 import { isCancelled } from "@/utils/errors";
 
-// Loads one thing (a video, a channel…) for `key`, cancelling the request when the key changes or the page closes.
-// Pass key = null to skip loading.
+// Loads one thing (a video, a channel) for `key` and cancels it when the key changes; a null key skips loading.
 export const useResource = (fetchResource, key) => {
     const fetchRef = useLatest(fetchResource);
     const [state, setState] = useState({ key: null, data: null, error: null });

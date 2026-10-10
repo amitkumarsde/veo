@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 import { badRequest } from "../errors/app-error.js";
 
-// Keyset (cursor) pagination: stable while new items arrive and fast at any depth, unlike skip/limit.
+// Cursor paging: stays correct while new items arrive and is fast at any depth.
 export const VIDEO_SORTS = Object.freeze({
     newest: { name: "newest", field: "uploadDate", direction: -1, type: "date" },
     oldest: { name: "oldest", field: "uploadDate", direction: 1, type: "date" },

@@ -14,8 +14,7 @@ const initialStateFor = (key) => {
     return cached ? { key, items: cached.items, cursor: cached.cursor, status: STATUS.idle, error: null } : loadingState(key);
 };
 
-// A cursor-paged list for `key` (e.g. a search). A new key starts over and cancels the old request.
-// `fetchPage({ cursor, signal })` returns { items, nextCursor }; `getItemKey` removes repeats between pages.
+// A paged list for `key`; a new key starts over, and `getItemKey` removes repeats between pages.
 export const usePagedList = (fetchPage, { key, getItemKey }) => {
     const fetchRef = useLatest(fetchPage);
     const getItemKeyRef = useLatest(getItemKey);
@@ -23,7 +22,7 @@ export const usePagedList = (fetchPage, { key, getItemKey }) => {
     const [attempt, setAttempt] = useState(0);
     const signalRef = useRef(null);
 
-    // A new key replaces the list during render, so a stale list is never shown or cached under the new key.
+    // A new key resets the list during render, so an old list is never shown under the new key.
     if (list.key !== key) setList(initialStateFor(key));
 
     useEffect(() => {

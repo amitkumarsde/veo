@@ -7,6 +7,7 @@ import { Button, TextButton } from "@/components/ui/Button";
 import Field from "@/components/ui/Field";
 import { Input, PasswordInput } from "@/components/ui/Input";
 import { LIMITS } from "@/constants/limits";
+import { getNewPasswordError } from "@/features/auth/password-rules";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useForm } from "@/hooks/useForm";
 import { resetPassword } from "@/services/user.service";
@@ -25,7 +26,7 @@ const ForgotPasswordPage = () => {
         const { newPassword, confirmPassword } = form.values;
         if (form.showErrors({
             email: !email && "Enter your email.",
-            newPassword: newPassword.length < LIMITS.password.min && `Use at least ${LIMITS.password.min} characters.`,
+            newPassword: getNewPasswordError(newPassword),
             confirmPassword: newPassword !== confirmPassword && "Passwords don't match.",
         })) return;
         setIsSubmitting(true);
@@ -50,10 +51,10 @@ const ForgotPasswordPage = () => {
                 <Input type="email" autoComplete="email" autoFocus={!form.values.email} {...form.bind("email")} />
             </Field>
             <Field label="New password" hint={`At least ${LIMITS.password.min} characters`} error={form.errors.newPassword}>
-                <PasswordInput autoComplete="new-password" maxLength={LIMITS.password.max} {...form.bind("newPassword")} />
+                <PasswordInput autoComplete="new-password" maxLength={LIMITS.password.maxBytes} {...form.bind("newPassword")} />
             </Field>
             <Field label="Confirm new password" error={form.errors.confirmPassword}>
-                <PasswordInput autoComplete="new-password" maxLength={LIMITS.password.max} {...form.bind("confirmPassword")} />
+                <PasswordInput autoComplete="new-password" maxLength={LIMITS.password.maxBytes} {...form.bind("confirmPassword")} />
             </Field>
             <Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? "Saving…" : "Change password"}</Button>
         </AuthLayout>

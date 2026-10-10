@@ -29,7 +29,7 @@ const start = async () => {
     const server = createApp().listen(config.port, () => logger.info(`Server listening on port ${config.port}`));
     server.requestTimeout = REQUEST_TIMEOUT_MS;
 
-    // Render sends SIGTERM on deploys: finish open requests, close the database, then exit.
+    // On deploy Render sends SIGTERM: we finish open requests, close the database, then exit.
     const shutdown = (signal) => {
         logger.info(`${signal} received, shutting down`);
         server.close(async () => {

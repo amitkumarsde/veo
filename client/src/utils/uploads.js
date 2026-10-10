@@ -9,7 +9,7 @@ export const acceptAttribute = (kind) => FILE_KINDS[kind].types.join(",");
 
 export const fileHint = (kind) => `${FILE_KINDS[kind].names} · up to ${FILE_KINDS[kind].maxMb} MB`;
 
-// Why a picked file can't be used, or null. A quick check only; the server inspects the file itself.
+// Why a picked file can't be used, or null; a quick check, and the server checks the file again.
 export const getFileError = (file, kind) => {
     const { types, maxMb, names } = FILE_KINDS[kind];
     if (!types.includes(file.type)) return `Please choose a ${names} file.`;

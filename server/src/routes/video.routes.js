@@ -11,11 +11,11 @@ import { videoSchemas } from "../validators/video.validation.js";
 
 const videoFiles = acceptUploads({ thumbnail: "image", videoFile: "video" });
 
-// One counted view per visitor per video every 10 minutes; extra calls are quietly accepted and ignored.
+// We count one view per visitor per video every 10 minutes; extra calls are accepted and ignored.
 const viewLimit = rateLimit({
     windowMs: 10 * 60 * 1000,
     max: 1,
-    keyFor: (req) => `${req.ip}:${req.params.videoId}`,
+    keyFor: (req) => `${req.ip}:${req.validated.params.videoId}`,
     onLimit: (req, res) => res.status(204).end(),
 });
 
@@ -36,7 +36,7 @@ videoRouter.patch("/:videoId", requireAuth, videoFiles, validate(videoSchemas.up
 videoRouter.delete("/:videoId", requireAuth, validate(videoSchemas.videoById), videoController.deleteVideo);
 videoRouter.get("/:videoId/related", validate(videoSchemas.videoById), videoController.listRelatedVideos);
 videoRouter.put("/:videoId/like", requireAuth, validate(videoSchemas.setLike), videoController.setLike);
-videoRouter.post("/:videoId/views", viewLimit, validate(videoSchemas.videoById), videoController.recordView);
+videoRouter.post("/:videoId/views", validate(videoSchemas.videoById), viewLimit, videoController.recordView);
 
 videoRouter.get("/:videoId/comments", validate(commentSchemas.listComments), commentController.listComments);
 videoRouter.post("/:videoId/comments", requireAuth, commentLimit, validate(commentSchemas.addComment), commentController.addComment);

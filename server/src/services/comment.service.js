@@ -27,7 +27,7 @@ const assertCommentId = (commentId) => {
     if (!mongoose.isValidObjectId(commentId)) throw notFound("Comment not found.");
 };
 
-// After an "own comment" lookup found nothing: 403 if it exists but belongs to someone else, else 404.
+// When nothing was found: 403 if the comment belongs to someone else, otherwise 404.
 const throwMissingOrNotYours = async (commentId, videoId, action) => {
     if (await commentRepository.exists(commentId, videoId)) throw forbidden(`You can only ${action} your own comments.`);
     throw notFound("Comment not found.");

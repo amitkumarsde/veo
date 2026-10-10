@@ -19,15 +19,14 @@ export const createApp = () => {
     app.set("trust proxy", config.trustProxy);
     app.use(helmet());
     app.use(requestLogger);
-    // Only the configured sites may call the API; in development any origin is allowed when none is set.
+    // Only the listed sites may call the API; in development any site may when none is listed.
     app.use(cors({
         origin: config.corsOrigins.length ? config.corsOrigins : !config.isProduction,
-        exposedHeaders: ["X-Request-Id", "Retry-After"],
         maxAge: CORS_PREFLIGHT_CACHE_SECONDS,
     }));
     app.use(express.json({ limit: JSON_BODY_LIMIT }));
 
-    // "/" says the process is up; "/health" also checks the database (use it as Render's health check).
+    // "/" says the server is running; "/health" also checks the database (Render's health check).
     app.get("/", (req, res) => res.json({ success: true, message: "Veo API is running." }));
     app.get("/health", (req, res) => {
         const databaseUp = isDatabaseConnected();

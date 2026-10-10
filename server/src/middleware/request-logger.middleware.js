@@ -4,11 +4,9 @@ import { logger } from "../utils/logger.js";
 
 const QUIET_PATHS = new Set(["/", "/health"]);
 
-// Gives each request an id (returned as X-Request-Id) and logs one line when it finishes. Query strings are never logged.
+// We give each request an id for the logs and write one line when it ends, without the query string.
 export const requestLogger = (req, res, next) => {
-    const incomingId = req.get("x-request-id");
-    req.id = incomingId && /^[\w-]{1,64}$/.test(incomingId) ? incomingId : randomUUID();
-    res.set("X-Request-Id", req.id);
+    req.id = randomUUID();
 
     const startedAt = process.hrtime.bigint();
     res.on("finish", () => {
