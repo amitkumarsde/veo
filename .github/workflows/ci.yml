@@ -19,7 +19,8 @@ jobs:
           node-version: 24
           cache: npm
           cache-dependency-path: client/package-lock.json
-      - run: npm ci
+      # I install like Vercel does; npm ci fails on Linux with a Windows-made lockfile because of Tailwind's optional wasm package.
+      - run: npm install --no-audit --no-fund
       - run: npm run lint
       - run: npm run build
         env:
