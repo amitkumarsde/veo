@@ -1,11 +1,12 @@
 import { Link } from "react-router";
 
 import { preloadPage } from "@/app/page-loaders";
+import { videoPath } from "@/utils/paths";
 
 // Thumbnail link to the video, hidden from screen readers because the title link goes to the same place.
 const VideoThumbnail = ({ video }) => (
     <Link
-        to={`/video/${video.videoId}`}
+        to={videoPath(video.videoId)}
         onMouseEnter={preloadPage("video")}
         tabIndex={-1}
         aria-hidden

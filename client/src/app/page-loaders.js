@@ -1,7 +1,7 @@
 // Each page loads as its own file on first visit; hovering a link starts the download early.
 export const pageLoaders = {
-    signIn: () => import("@/pages/SignInPage"),
-    signUp: () => import("@/pages/SignUpPage"),
+    login: () => import("@/pages/LoginPage"),
+    register: () => import("@/pages/RegisterPage"),
     forgotPassword: () => import("@/pages/ForgotPasswordPage"),
     profile: () => import("@/pages/ProfilePage"),
     editProfile: () => import("@/pages/EditProfilePage"),

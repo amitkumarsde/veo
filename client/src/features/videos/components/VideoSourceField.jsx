@@ -48,7 +48,7 @@ const VideoSourceField = ({ id, mode, onModeChange, link, onLinkChange, file, on
                                 <X size={18} aria-hidden />
                             </button>
                         )}
-                        <TextButton onClick={() => inputRef.current?.click()} tone="accent">{previewUrl ? "Replace" : "Choose file"}</TextButton>
+                        <TextButton data-picker-button onClick={() => inputRef.current?.click()} tone="accent" {...ariaProps}>{previewUrl ? "Replace" : "Choose file"}</TextButton>
                     </div>
                     <input
                         ref={inputRef}

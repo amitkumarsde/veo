@@ -12,22 +12,24 @@ import { nextSubscriberCount, useSubscriptionToggle } from "@/features/channels/
 import VideoGrid from "@/features/videos/components/VideoGrid";
 import { usePagedVideos } from "@/features/videos/hooks/usePagedVideos";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useRefreshOnUserChange } from "@/hooks/useRefreshOnUserChange";
 import { useResource } from "@/hooks/useResource";
 import { getChannel } from "@/services/channel.service";
 import { listVideos } from "@/services/video.service";
+import { studioPath } from "@/utils/paths";
 
 const PAGE_SIZE = 24;
 
-const ChannelPage = () => {
-    const { channelId } = useParams();
+const ChannelView = ({ channelId }) => {
     const { user } = useAuth();
     const [sort, setSort] = useState(DEFAULT_SORT);
-    const { data: channel, error, loading, setData: setChannel, reload } = useResource((signal) => getChannel(channelId, signal), channelId);
+    const { data: channel, error, loading, setData: setChannel, reload, refresh } = useResource((signal) => getChannel(channelId, signal), channelId);
+    useRefreshOnUserChange(refresh);
     const { toggleSubscription, isSubscriptionPending } = useSubscriptionToggle({
         channelId,
         isSubscribed: Boolean(channel?.subscribed),
-        isSignedIn: Boolean(user),
-        applySubscription: (change) => setChannel((current) => ({
+        isLoggedIn: Boolean(user),
+        applySubscription: (change) => setChannel((current) => current && ({
             ...current,
             subscribed: change.subscribed,
             subscribers: nextSubscriberCount(current.subscribers, change),
@@ -54,7 +56,7 @@ const ChannelPage = () => {
 
     const isOwner = user?.username === channel.owner;
     const actions = isOwner
-        ? <TextButton as={Link} to="/studio" tone="accent"><Settings2 size={17} aria-hidden /> Manage channel</TextButton>
+        ? <TextButton as={Link} to={studioPath(channel.channelId)} tone="accent"><Settings2 size={17} aria-hidden /> Manage channel</TextButton>
         : channel.subscribed
             ? <TextButton onClick={toggleSubscription} disabled={isSubscriptionPending} tone="fg">Subscribed</TextButton>
             : <Button onClick={toggleSubscription} disabled={isSubscriptionPending}>Subscribe</Button>;
@@ -80,6 +82,12 @@ const ChannelPage = () => {
             )}
         </div>
     );
+};
+
+// A fresh page per channel, so a subscribe still saving for the last channel can't land on this one.
+const ChannelPage = () => {
+    const { channelId } = useParams();
+    return <ChannelView key={channelId} channelId={channelId} />;
 };
 
 export default ChannelPage;

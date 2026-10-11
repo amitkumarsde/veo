@@ -7,17 +7,17 @@ export const getChannel = async (req, res) => {
 
 export const createChannel = async (req, res) => {
     const channel = await channelService.createChannel(req.user.username, req.validated.body, req.uploads);
-    sendSuccess(res, channel, { status: 201, message: "Your channel is ready." });
+    sendSuccess(res, channel, 201);
 };
 
 export const updateChannel = async (req, res) => {
     const channel = await channelService.updateChannel(req.validated.params.channelId, req.user.username, req.validated.body, req.uploads);
-    sendSuccess(res, channel, { message: "Changes saved." });
+    sendSuccess(res, channel);
 };
 
 export const deleteChannel = async (req, res) => {
     await channelService.deleteChannel(req.validated.params.channelId, req.user.username);
-    sendSuccess(res, null, { message: "Channel deleted." });
+    sendSuccess(res);
 };
 
 export const setSubscription = async (req, res) => {

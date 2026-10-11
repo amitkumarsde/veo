@@ -23,19 +23,19 @@ const generateUsername = async (name) => {
     return `${base}${Date.now().toString(36)}`;
 };
 
-export const signUp = async ({ name, email, password }) => {
+export const register = async ({ name, email, password }) => {
     if (await userRepository.existsByEmail(email)) throw fieldError(409, "email", EMAIL_TAKEN);
     const username = await generateUsername(name);
     try {
         await userRepository.create({ username, name, email, password: await hashPassword(password) });
     } catch (error) {
-        // Two sign-ups at the same moment: the unique indexes reject the second one.
+        // Two registrations at the same moment: the unique indexes reject the second one.
         if (!isDuplicateKeyError(error)) throw error;
         throw error.keyPattern?.email ? fieldError(409, "email", EMAIL_TAKEN) : conflict("Please try again.");
     }
 };
 
-export const signIn = async ({ email, password }) => {
+export const login = async ({ email, password }) => {
     const user = await userRepository.findByEmailWithPassword(email);
     const passwordMatches = await isPasswordCorrect(password, user?.password ?? UNKNOWN_USER_HASH);
     if (!user || !passwordMatches) throw unauthorized(WRONG_CREDENTIALS);
@@ -52,13 +52,13 @@ export const resetPassword = async ({ email, newPassword }) => {
     await user.save();
 };
 
-// Returns the signed-in user for a token, or null; tokens from before the last password change don't work.
+// The logged-in user for a token, or null; tokens made before the last password change are refused.
 export const resolveSession = async (token) => {
     const claims = verifyAccessToken(token);
     if (!claims || !mongoose.isValidObjectId(claims.sub)) return null;
     const user = await userRepository.findSessionById(claims.sub);
     if (!user) return null;
-    // Tokens only store whole seconds, so I round up and also reject tokens from the same second as the change.
+    // Tokens keep whole seconds only, so the time is rounded up and a token from the same second is refused too.
     const changedAtSeconds = user.passwordChangedAt ? Math.ceil(user.passwordChangedAt.getTime() / 1000) : 0;
     if (claims.iat < changedAtSeconds) return null;
     return { id: String(user._id), username: user.username };

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { LIMITS } from "../constants/limits.js";
+import { isPlayableVideoLink, parseHttpUrl } from "../utils/video-links.js";
 import { optionalInput, pageCursor, pageLimit, requiredText, videoParams } from "./common.validation.js";
 
 // "a, b" or ["a", "b"] -> ["a", "b"]: lower case, no blanks, no repeats.
@@ -14,18 +15,11 @@ const categories = z.preprocess(
         .max(LIMITS.categories, `Add at most ${LIMITS.categories} categories.`),
 );
 
-const isHttpUrl = (value) => {
-    try {
-        return ["http:", "https:"].includes(new URL(value).protocol);
-    } catch {
-        return false;
-    }
-};
-
 const videoUrl = optionalInput(
     z.string().trim()
         .max(LIMITS.videoUrl, "The video link is too long.")
-        .refine(isHttpUrl, "The video link must start with http:// or https://."),
+        .refine((value) => parseHttpUrl(value) !== null, "The video link must start with http:// or https://.")
+        .refine(isPlayableVideoLink, "This link can't be played. Use a YouTube link or a direct link to an MP4/WebM file."),
 );
 
 export const videoSchemas = {

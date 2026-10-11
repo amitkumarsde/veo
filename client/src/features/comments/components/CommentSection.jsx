@@ -6,6 +6,7 @@ import TextTabs from "@/components/ui/TextTabs";
 import { COMMENT_SORT_OPTIONS, DEFAULT_SORT } from "@/constants/sort-options";
 import CommentForm from "@/features/comments/components/CommentForm";
 import CommentItem from "@/features/comments/components/CommentItem";
+import { useLatest } from "@/hooks/useLatest";
 import { usePagedList } from "@/hooks/usePagedList";
 import { addComment, deleteComment, editComment, listComments } from "@/services/comment.service";
 import { getErrorMessage } from "@/utils/errors";
@@ -25,17 +26,20 @@ const CommentSection = ({ videoId, commentCount, user, onCountChange }) => {
     );
     const comments = usePagedList(fetchPage, { key: listKey(videoId, sort), getItemKey: getCommentKey });
     const { setItems } = comments;
+    const sortRef = useLatest(sort);
+    const reloadRef = useLatest(comments.reload);
 
-    // I drop the cached lists for the other sort orders so they load fresh.
+    // Drops the cached lists for the other sort orders so they load fresh.
     const forgetOtherSorts = () => {
-        for (const option of COMMENT_SORT_OPTIONS) if (option.value !== sort) removeList(listKey(videoId, option.value));
+        for (const option of COMMENT_SORT_OPTIONS) if (option.value !== sortRef.current) removeList(listKey(videoId, option.value));
     };
 
     const handleAdd = async (text) => {
         try {
             const comment = await addComment(videoId, text);
-            // We show it where it belongs: first for newest, last only when the whole list is loaded.
-            if (sort === "newest") setItems((items) => [comment, ...items]);
+            // First for newest, last only when the whole list is loaded; a sort change while posting reloads the list.
+            if (sortRef.current !== sort) reloadRef.current();
+            else if (sort === "newest") setItems((items) => [comment, ...items]);
             else if (!comments.hasMore) setItems((items) => [...items, comment]);
             onCountChange(1);
             forgetOtherSorts();
@@ -102,7 +106,7 @@ const CommentSection = ({ videoId, commentCount, user, onCountChange }) => {
                     ))}
                 </div>
             )}
-            <LoadMore hasMore={comments.hasMore} loading={comments.loadingMore} onLoadMore={comments.loadMore} label="More comments" />
+            <LoadMore hasMore={comments.hasMore} loading={comments.loadingMore} failed={comments.loadMoreFailed} onLoadMore={comments.loadMore} label="More comments" />
         </section>
     );
 };

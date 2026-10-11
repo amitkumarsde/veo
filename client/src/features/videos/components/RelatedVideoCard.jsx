@@ -1,10 +1,11 @@
 import { Link } from "react-router";
 
 import { countLabel, timeAgo } from "@/utils/format";
+import { videoPath } from "@/utils/paths";
 
 // Compact row for the "Up next" list.
 const RelatedVideoCard = ({ video }) => (
-    <Link to={`/video/${video.videoId}`} className="group grid grid-cols-[9.5rem_minmax(0,1fr)] gap-3.5">
+    <Link to={videoPath(video.videoId)} className="group grid grid-cols-[9.5rem_minmax(0,1fr)] gap-3.5">
         <div className="overflow-hidden rounded-ui bg-surface-2">
             <img src={video.thumbnailUrl} alt="" loading="lazy" decoding="async" className="aspect-video w-full object-cover transition-transform duration-500 group-hover:scale-[1.04]" />
         </div>

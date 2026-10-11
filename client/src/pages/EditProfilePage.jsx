@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useNavigate } from "react-router";
 import { toast } from "react-toastify";
 
@@ -13,6 +14,7 @@ import { useAuth } from "@/features/auth/useAuth";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useForm } from "@/hooks/useForm";
 import { useImageField } from "@/hooks/useImageField";
+import { useLatest } from "@/hooks/useLatest";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useUploadTask } from "@/hooks/useUploadTask";
 import { updateProfile } from "@/services/user.service";
@@ -25,8 +27,18 @@ const EditProfilePage = () => {
     const form = useForm({ name: user.name ?? "", bio: user.bio ?? "" });
     const photo = useImageField(user.avatarURL ?? "");
     const upload = useUploadTask();
-    const allowLeave = useUnsavedChanges(form.isDirty || photo.changed || upload.isUploading);
+    const allowLeave = useUnsavedChanges(form.isDirty || photo.changed || upload.isUploading, upload.leaveMessage);
     useDocumentTitle("Edit profile");
+
+    // Takes the server's newer copy of the account while nothing here has been changed yet.
+    const isUntouchedRef = useLatest(!form.isDirty && !photo.changed && !upload.isUploading);
+    const { reset: resetForm } = form;
+    const { reset: resetPhoto } = photo;
+    useEffect(() => {
+        if (!isUntouchedRef.current) return;
+        resetForm({ name: user.name ?? "", bio: user.bio ?? "" });
+        resetPhoto(user.avatarURL ?? "");
+    }, [user.name, user.bio, user.avatarURL, resetForm, resetPhoto, isUntouchedRef]);
 
     const handleSubmit = async (event) => {
         event.preventDefault();

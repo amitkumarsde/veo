@@ -5,7 +5,8 @@ import { useLatest } from "@/hooks/useLatest";
 import { getErrorMessage, isCancelled } from "@/utils/errors";
 import { readList, removeList, writeList } from "@/utils/list-cache";
 
-const STATUS = { loading: "loading", idle: "idle", loadingMore: "loadingMore", error: "error" };
+// loadMoreError: the next page failed; it loads again only when asked (the "Show more" button), never by itself.
+const STATUS = { loading: "loading", idle: "idle", loadingMore: "loadingMore", loadMoreError: "loadMoreError", error: "error" };
 
 const loadingState = (key) => ({ key, items: [], cursor: null, status: STATUS.loading, error: null });
 
@@ -43,10 +44,11 @@ export const usePagedList = (fetchPage, { key, getItemKey }) => {
     }, [key, list]);
 
     const loadMore = useCallback(() => {
-        if (!list.cursor || list.status !== STATUS.idle) return;
+        if (!list.cursor || (list.status !== STATUS.idle && list.status !== STATUS.loadMoreError)) return;
         setList((previous) => ({ ...previous, status: STATUS.loadingMore }));
         fetchRef.current({ cursor: list.cursor, signal: signalRef.current })
             .then((page) => setList((previous) => {
+                if (previous.key !== key) return previous;
                 const seen = new Set(previous.items.map(getItemKeyRef.current));
                 const fresh = page.items.filter((item) => !seen.has(getItemKeyRef.current(item)));
                 return { ...previous, items: [...previous.items, ...fresh], cursor: page.nextCursor, status: STATUS.idle };
@@ -54,9 +56,9 @@ export const usePagedList = (fetchPage, { key, getItemKey }) => {
             .catch((error) => {
                 if (isCancelled(error)) return;
                 toast.error(getErrorMessage(error, "Couldn't load more. Please try again."));
-                setList((previous) => ({ ...previous, status: STATUS.idle }));
+                setList((previous) => (previous.key === key ? { ...previous, status: STATUS.loadMoreError } : previous));
             });
-    }, [list.cursor, list.status, fetchRef, getItemKeyRef]);
+    }, [key, list.cursor, list.status, fetchRef, getItemKeyRef]);
 
     const setItems = useCallback((update) => setList((previous) => ({
         ...previous,
@@ -74,6 +76,7 @@ export const usePagedList = (fetchPage, { key, getItemKey }) => {
         setItems,
         loading: list.status === STATUS.loading,
         loadingMore: list.status === STATUS.loadingMore,
+        loadMoreFailed: list.status === STATUS.loadMoreError,
         error: list.error,
         hasMore: Boolean(list.cursor),
         loadMore,

@@ -3,7 +3,7 @@ import { Link, NavLink, useLocation, useNavigate } from "react-router";
 import { Clapperboard, Moon, Search, Sun, Upload, X } from "lucide-react";
 
 import Logo from "@/components/common/Logo";
-import Avatar from "@/components/ui/Avatar";
+import ProfileMenu from "@/components/layout/ProfileMenu";
 import { Button, TextButton } from "@/components/ui/Button";
 import { LIMITS } from "@/constants/limits";
 import { useAuth } from "@/features/auth/useAuth";
@@ -53,10 +53,10 @@ const Header = () => {
         return () => window.removeEventListener("keydown", onKeyDown);
     }, []);
 
-    // On the home page results update while typing; on other pages search runs on Enter.
+    // On the home page results update while typing (one history entry per search); on other pages search runs on Enter.
     const handleSearchChange = (value) => {
         setSearchText(value);
-        if (isHome) navigate(buildSearchUrl(location, value.trim()), { replace: true });
+        if (isHome) navigate(buildSearchUrl(location, value.trim()), { replace: Boolean(urlQuery) });
     };
     const handleSearchSubmit = (event) => {
         event.preventDefault();
@@ -107,13 +107,11 @@ const Header = () => {
                         {isDark ? <Sun size={19} aria-hidden /> : <Moon size={19} aria-hidden />}
                     </button>
                     {user ? (
-                        <Link to="/profile" aria-label="Your profile" className="rounded-full transition-opacity hover:opacity-80">
-                            <Avatar src={user.avatarURL} name={user.name || user.username} className="h-8 w-8 rounded-full text-xs" />
-                        </Link>
+                        <ProfileMenu user={user} />
                     ) : (
                         <>
-                            <TextButton as={Link} to="/signin" tone="fg" className="hidden sm:inline-flex">Sign in</TextButton>
-                            <Button as={Link} to="/signup" size="sm">Join Veo</Button>
+                            <TextButton as={Link} to="/login" tone="fg" className="hidden sm:inline-flex">Log in</TextButton>
+                            <Button as={Link} to="/register" size="sm">Join Veo</Button>
                         </>
                     )}
                 </nav>

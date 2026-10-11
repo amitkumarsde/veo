@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { toast } from "react-toastify";
 import { Plus } from "lucide-react";
 
@@ -11,6 +11,7 @@ import { DEFAULT_SORT, STUDIO_SORT_OPTIONS } from "@/constants/sort-options";
 import { useAuth } from "@/features/auth/useAuth";
 import ChannelHeader from "@/features/channels/components/ChannelHeader";
 import ChannelStats from "@/features/channels/components/ChannelStats";
+import { canCreateChannel, getUserChannels, pickChannel, removeUserChannel } from "@/features/channels/user-channels";
 import { useConfirm } from "@/features/confirm/useConfirm";
 import StudioVideoRow from "@/features/videos/components/StudioVideoRow";
 import { usePagedVideos } from "@/features/videos/hooks/usePagedVideos";
@@ -20,6 +21,7 @@ import { deleteChannel, getChannel } from "@/services/channel.service";
 import { listVideos } from "@/services/video.service";
 import { getErrorMessage, isNotFound } from "@/utils/errors";
 import { pluralize } from "@/utils/format";
+import { channelPath, editChannelPath, uploadPath } from "@/utils/paths";
 
 const PAGE_SIZE = 25;
 
@@ -54,31 +56,54 @@ const StudioVideos = ({ channelId, onVideoDeleted }) => {
             ) : videos.error ? (
                 <EmptyState title="Couldn't load your videos" action={<TextButton tone="accent" onClick={videos.reload}>Try again</TextButton>} />
             ) : videos.items.length === 0 ? (
-                <EmptyState title="No videos yet" message="Upload your first video to get started." action={<TextButton as={Link} to="/upload-video" tone="accent">Upload a video</TextButton>} />
+                <EmptyState
+                    title="No videos yet"
+                    message="Upload your first video to get started."
+                    action={<TextButton as={Link} to={uploadPath(channelId)} tone="accent">Upload a video</TextButton>}
+                />
             ) : (
                 <div className="divide-y divide-border">
                     {videos.items.map((video) => <StudioVideoRow key={video.videoId} video={video} onDeleted={handleDeleted} />)}
                 </div>
             )}
-            <LoadMore hasMore={videos.hasMore} loading={videos.loadingMore} onLoadMore={videos.loadMore} />
+            <LoadMore hasMore={videos.hasMore} loading={videos.loadingMore} failed={videos.loadMoreFailed} onLoadMore={videos.loadMore} />
         </>
     );
 };
 
-// Channel workspace: totals, edit or delete the channel, and its videos.
+// Switch between the account's channels, or start another one while under the limit.
+const ChannelSwitcher = ({ channels, channelId, onChange, canCreate }) => (
+    <div className="mb-10 flex flex-wrap items-end justify-between gap-x-6 border-b border-border">
+        <TextTabs
+            options={channels.map((channel) => ({ value: channel.channelId, label: channel.channelName ?? channel.channelId }))}
+            value={channelId}
+            onChange={onChange}
+            label="Your channels"
+            capitalize={false}
+            className="min-w-0"
+        />
+        {canCreate && <TextButton as={Link} to="/create-channel" tone="accent" className="pb-2 text-sm"><Plus size={16} aria-hidden /> New channel</TextButton>}
+    </div>
+);
+
+// Channel workspace: totals, edit or delete, and its videos; ?channel= picks the channel.
 const StudioPage = () => {
     const { user, updateUser, refreshUser } = useAuth();
     const confirm = useConfirm();
-    const channelId = user.channelId;
+    const [searchParams, setSearchParams] = useSearchParams();
+    const channels = getUserChannels(user);
+    const channelId = pickChannel(channels, searchParams.get("channel"))?.channelId;
     const { data: channel, error, loading, setData: setChannel, reload } = useResource((signal) => getChannel(channelId, signal), channelId ?? null);
     const [isDeleting, setIsDeleting] = useState(false);
     useDocumentTitle("Studio");
 
-    // If the channel was deleted elsewhere (another tab or device), we reload the account.
+    // A channel deleted elsewhere is dropped here at once (opening the next one) and the account reloads in the background.
     const channelIsGone = isNotFound(error);
     useEffect(() => {
-        if (channelIsGone) refreshUser().catch(() => {});
-    }, [channelIsGone, refreshUser]);
+        if (!channelIsGone) return;
+        updateUser((current) => removeUserChannel(current, channelId));
+        refreshUser().catch(() => {});
+    }, [channelIsGone, channelId, updateUser, refreshUser]);
 
     const handleDeleteChannel = async () => {
         const confirmed = await confirm({
@@ -92,9 +117,12 @@ const StudioPage = () => {
         try {
             await deleteChannel(channelId);
             toast.success("Channel deleted");
-            updateUser((current) => ({ ...current, channelId: null }));
+            setSearchParams({}, { replace: true });
+            updateUser((current) => removeUserChannel(current, channelId));
         } catch (deleteError) {
             toast.error(getErrorMessage(deleteError, "Couldn't delete the channel."));
+        } finally {
+            // The studio stays open on the next channel, so its Delete button must work again.
             setIsDeleting(false);
         }
     };
@@ -110,18 +138,28 @@ const StudioPage = () => {
     });
 
     if (!channelId) return <CreateChannelPrompt />;
-    if (loading || channelIsGone) return <Spinner label="Loading your studio" />;
-    if (error || !channel) return <LoadErrorState error={error} onRetry={reload} title="Couldn't load your studio" />;
+
+    const switcher = (
+        <ChannelSwitcher
+            channels={channels}
+            channelId={channelId}
+            onChange={(nextChannelId) => setSearchParams({ channel: nextChannelId })}
+            canCreate={canCreateChannel(user)}
+        />
+    );
+    if (loading || channelIsGone) return <>{switcher}<Spinner label="Loading your studio" /></>;
+    if (error || !channel) return <>{switcher}<LoadErrorState error={error} onRetry={reload} title="Couldn't load your studio" /></>;
 
     return (
         <div className="animate-rise">
+            {switcher}
             <ChannelHeader
                 channel={channel}
                 eyebrow="Your studio"
                 actions={(
                     <>
-                        <TextButton as={Link} to={`/channel/${encodeURIComponent(channelId)}`}>View channel</TextButton>
-                        <TextButton as={Link} to={`/update-channel/${encodeURIComponent(channelId)}`}>Edit details</TextButton>
+                        <TextButton as={Link} to={channelPath(channelId)}>View channel</TextButton>
+                        <TextButton as={Link} to={editChannelPath(channelId)}>Update</TextButton>
                         <TextButton onClick={handleDeleteChannel} disabled={isDeleting} tone="danger">{isDeleting ? "Deleting…" : "Delete"}</TextButton>
                     </>
                 )}

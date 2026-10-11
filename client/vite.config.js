@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react";
 import { defineConfig, loadEnv } from "vite";
 
 export default defineConfig(({ command, mode }) => {
-    // The API address is built into the site, so I stop a build that doesn't have it.
+    // The API address is built into the site, so a build without it stops here.
     if (command === "build" && !loadEnv(mode, process.cwd(), "VITE_").VITE_API_URL) {
         throw new Error("VITE_API_URL is not set. Add it (your Render server address) before building, e.g. in Vercel's Environment Variables.");
     }

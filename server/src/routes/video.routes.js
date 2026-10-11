@@ -11,7 +11,7 @@ import { videoSchemas } from "../validators/video.validation.js";
 
 const videoFiles = acceptUploads({ thumbnail: "image", videoFile: "video" });
 
-// We count one view per visitor per video every 10 minutes; extra calls are accepted and ignored.
+// One view per visitor per video every 10 minutes; extra calls are accepted and ignored.
 const viewLimit = rateLimit({
     windowMs: 10 * 60 * 1000,
     max: 1,

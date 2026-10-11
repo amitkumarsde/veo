@@ -5,10 +5,10 @@ import { commentRepository } from "../repositories/comment.repository.js";
 import { userRepository } from "../repositories/user.repository.js";
 import { videoRepository } from "../repositories/video.repository.js";
 import { COMMENT_SORTS } from "../utils/pagination.js";
+import { inTransaction } from "../utils/transaction.js";
 
 const toPublicComment = (comment, author) => ({
     commentId: String(comment._id),
-    videoId: comment.videoId,
     text: comment.text,
     createdAt: comment.createdAt,
     editedAt: comment.editedAt ?? null,
@@ -40,8 +40,12 @@ export const listComments = async (videoId, { sort, cursor, limit }) => {
 
 export const addComment = async (videoId, author, text) => {
     if (!(await videoRepository.existsById(videoId))) throw notFound("Video not found.");
-    const comment = await commentRepository.create({ videoId, author, text });
-    await videoRepository.incrementCommentCount(videoId, 1);
+    // The comment and the video's count are saved together, so they can't get out of step.
+    const comment = await inTransaction(async () => {
+        const created = await commentRepository.create({ videoId, author, text });
+        await videoRepository.incrementCommentCount(videoId, 1);
+        return created;
+    });
     const [publicComment] = await attachAuthors([comment]);
     return publicComment;
 };
@@ -56,7 +60,10 @@ export const editComment = async (videoId, commentId, author, text) => {
 
 export const deleteComment = async (videoId, commentId, author) => {
     assertCommentId(commentId);
-    const comment = await commentRepository.deleteByAuthor({ commentId, videoId, author });
-    if (!comment) await throwMissingOrNotYours(commentId, videoId, "delete");
-    await videoRepository.incrementCommentCount(videoId, -1);
+    const deleted = await inTransaction(async () => {
+        const comment = await commentRepository.deleteByAuthor({ commentId, videoId, author });
+        if (comment) await videoRepository.incrementCommentCount(videoId, -1);
+        return Boolean(comment);
+    });
+    if (!deleted) await throwMissingOrNotYours(commentId, videoId, "delete");
 };

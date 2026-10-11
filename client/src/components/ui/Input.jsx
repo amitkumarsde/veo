@@ -5,6 +5,10 @@ const FIELD_CLASS = "w-full rounded-ui border border-transparent bg-surface-2 px
 
 export const Input = ({ className = "", ...props }) => <input className={`${FIELD_CLASS} h-11 ${className}`} {...props} />;
 
+export const Select = ({ className = "", children, ...props }) => (
+    <select className={`${FIELD_CLASS} h-11 ${className}`} {...props}>{children}</select>
+);
+
 export const Textarea = ({ className = "", rows = 4, ...props }) => (
     <textarea rows={rows} className={`${FIELD_CLASS} resize-y py-2.5 leading-relaxed ${className}`} {...props} />
 );

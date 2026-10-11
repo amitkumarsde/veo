@@ -24,12 +24,13 @@ const start = async () => {
     if (config.allowPasswordReset && config.isProduction) {
         logger.warn("Password reset by email only is ON: anyone who knows an email can set its password. Set ALLOW_PASSWORD_RESET_BY_EMAIL=false to turn it off.");
     }
-    await initStorage();
+    // Runs in the background, so a slow storage service can't stop the server from starting.
+    initStorage();
 
     const server = createApp().listen(config.port, () => logger.info(`Server listening on port ${config.port}`));
     server.requestTimeout = REQUEST_TIMEOUT_MS;
 
-    // On deploy Render sends SIGTERM: we finish open requests, close the database, then exit.
+    // On deploy Render sends SIGTERM: open requests finish, the database closes, then the process exits.
     const shutdown = (signal) => {
         logger.info(`${signal} received, shutting down`);
         server.close(async () => {

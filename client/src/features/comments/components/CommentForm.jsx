@@ -13,14 +13,14 @@ const CommentForm = ({ user, onSubmit }) => {
     const [text, setText] = useState("");
     const [isPosting, setIsPosting] = useState(false);
 
-    const promptSignIn = () => {
-        if (!user) toast.info("Sign in to comment.");
+    const promptLogin = () => {
+        if (!user) toast.info("Log in to comment.");
         return !user;
     };
 
     const handleSubmit = async (event) => {
         event.preventDefault();
-        if (promptSignIn()) return;
+        if (promptLogin()) return;
         const trimmed = text.trim();
         if (!trimmed || isPosting) return;
         setIsPosting(true);
@@ -35,12 +35,12 @@ const CommentForm = ({ user, onSubmit }) => {
             <div className="min-w-0 flex-1">
                 <Textarea
                     rows={text ? 3 : 1}
-                    placeholder={user ? "Add a comment…" : "Sign in to join the conversation"}
+                    placeholder={user ? "Add a comment…" : "Log in to join the conversation"}
                     aria-label="Add a comment"
                     maxLength={LIMITS.comment}
                     value={text}
                     readOnly={!user}
-                    onFocus={promptSignIn}
+                    onFocus={promptLogin}
                     onChange={(event) => setText(event.target.value)}
                     onKeyDown={(event) => { if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) handleSubmit(event); }}
                 />

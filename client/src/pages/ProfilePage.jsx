@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router";
-import { toast } from "react-toastify";
+import { Link } from "react-router";
 import { ArrowRight, LogOut, Pencil } from "lucide-react";
 
 import Avatar from "@/components/ui/Avatar";
@@ -8,13 +7,14 @@ import { Button, TextButton } from "@/components/ui/Button";
 import Field from "@/components/ui/Field";
 import { PasswordInput } from "@/components/ui/Input";
 import { useAuth } from "@/features/auth/useAuth";
+import { useLogout } from "@/features/auth/useLogout";
+import { canCreateChannel, getUserChannels } from "@/features/channels/user-channels";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useForm } from "@/hooks/useForm";
-import { useResource } from "@/hooks/useResource";
-import { getChannel } from "@/services/channel.service";
 import { deleteAccount } from "@/services/user.service";
 import { clearLists } from "@/utils/list-cache";
 import { formatMonthYear } from "@/utils/format";
+import { studioPath } from "@/utils/paths";
 
 const DetailRow = ({ label, children }) => (
     <div className="grid gap-1 py-5 sm:grid-cols-[12rem_minmax(0,1fr)] sm:gap-8">
@@ -23,7 +23,7 @@ const DetailRow = ({ label, children }) => (
     </div>
 );
 
-const DeleteAccountSection = ({ hasChannel, onDeleted }) => {
+const DeleteAccountSection = ({ channelCount, onDeleted }) => {
     const [isConfirming, setIsConfirming] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const form = useForm({ password: "" });
@@ -50,7 +50,9 @@ const DeleteAccountSection = ({ hasChannel, onDeleted }) => {
         <section className="mt-16" aria-labelledby="delete-account-heading">
             <h2 id="delete-account-heading" className="text-lg font-bold text-danger">Delete account</h2>
             <p className="mt-2 text-[15px] leading-relaxed text-muted">
-                This permanently deletes your account{hasChannel ? ", your channel and all its videos" : ""}, plus your comments, likes and subscriptions. It can't be undone.
+                This permanently deletes your account
+                {channelCount === 1 ? ", your channel and all its videos" : channelCount > 1 ? `, your ${channelCount} channels and all their videos` : ""}
+                , plus your comments, likes and subscriptions. It can't be undone.
             </p>
             {isConfirming ? (
                 <form onSubmit={handleSubmit} noValidate className="mt-6 max-w-md space-y-5">
@@ -69,19 +71,13 @@ const DeleteAccountSection = ({ hasChannel, onDeleted }) => {
     );
 };
 
-// Account page: details, edit, sign out, channel and delete account.
+// Account page: details, edit, log out, channel and delete account.
 const ProfilePage = () => {
-    const { user, signOut } = useAuth();
-    const navigate = useNavigate();
-    const channel = useResource((signal) => getChannel(user.channelId, signal), user.channelId ?? null).data;
+    const { user } = useAuth();
+    const leave = useLogout();
+    const channels = getUserChannels(user);
     useDocumentTitle("Your profile");
 
-    // We leave the protected page first, so the sign-in guard doesn't send us to /signin.
-    const leave = async (message) => {
-        await navigate("/", { replace: true, flushSync: true });
-        signOut();
-        toast.success(message);
-    };
     const handleAccountDeleted = () => {
         clearLists();
         leave("Your account has been deleted");
@@ -100,7 +96,7 @@ const ProfilePage = () => {
                 </div>
                 <div className="flex items-center gap-6">
                     <TextButton as={Link} to="/profile/edit" tone="accent"><Pencil size={16} aria-hidden /> Edit profile</TextButton>
-                    <TextButton onClick={() => leave("Signed out")}><LogOut size={16} aria-hidden /> Sign out</TextButton>
+                    <TextButton onClick={() => leave("Logged out")}><LogOut size={16} aria-hidden /> Log out</TextButton>
                 </div>
             </header>
             {user.bio && <p className="mt-8 whitespace-pre-line break-words text-[15px] leading-relaxed text-fg">{user.bio}</p>}
@@ -108,19 +104,24 @@ const ProfilePage = () => {
             <dl className="mt-12 divide-y divide-border border-y border-border">
                 <DetailRow label="Email">{user.email}</DetailRow>
                 {memberSince && <DetailRow label="Member since">{memberSince}</DetailRow>}
-                <DetailRow label="Channel">
-                    {user.channelId ? (
-                        <TextButton as={Link} to="/studio" tone="fg" className="text-[15px]">
-                            <Avatar src={channel?.channelAvatarURL} name={channel?.channelName ?? "?"} className="h-6 w-6 rounded-sm text-[10px]" />
-                            {channel?.channelName ?? "Your channel"} <ArrowRight size={16} aria-hidden />
-                        </TextButton>
-                    ) : (
-                        <TextButton as={Link} to="/create-channel" tone="accent" className="text-[15px]">Create a channel <ArrowRight size={16} aria-hidden /></TextButton>
-                    )}
+                <DetailRow label={channels.length > 1 ? "Channels" : "Channel"}>
+                    <div className="flex flex-col items-start gap-3">
+                        {channels.map((channel) => (
+                            <TextButton key={channel.channelId} as={Link} to={studioPath(channel.channelId)} tone="fg" className="text-[15px]">
+                                <Avatar src={channel.channelAvatarURL} name={channel.channelName ?? "?"} className="h-6 w-6 rounded-sm text-[10px]" />
+                                {channel.channelName ?? "Your channel"} <ArrowRight size={16} aria-hidden />
+                            </TextButton>
+                        ))}
+                        {canCreateChannel(user) && (
+                            <TextButton as={Link} to="/create-channel" tone="accent" className="text-[15px]">
+                                {channels.length ? "Create another channel" : "Create a channel"} <ArrowRight size={16} aria-hidden />
+                            </TextButton>
+                        )}
+                    </div>
                 </DetailRow>
             </dl>
 
-            <DeleteAccountSection hasChannel={Boolean(user.channelId)} onDeleted={handleAccountDeleted} />
+            <DeleteAccountSection channelCount={channels.length} onDeleted={handleAccountDeleted} />
         </div>
     );
 };

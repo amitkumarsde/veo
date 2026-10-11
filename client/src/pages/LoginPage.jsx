@@ -9,19 +9,19 @@ import { Input, PasswordInput } from "@/components/ui/Input";
 import { useAuth } from "@/features/auth/useAuth";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useForm } from "@/hooks/useForm";
-import { signIn as requestSignIn } from "@/services/user.service";
+import { login as requestLogin } from "@/services/user.service";
 
-// I only accept in-app paths as the page to return to.
-const safeReturnPath = (path) => (typeof path === "string" && path.startsWith("/") && !path.startsWith("//") ? path : "/");
+// Only in-app paths are accepted as the page to return to; "//x" and "/\x" would lead to another site.
+const safeReturnPath = (path) => (typeof path === "string" && path.startsWith("/") && path[1] !== "/" && path[1] !== "\\" ? path : "/");
 
-const SignInPage = () => {
-    const { user, signIn } = useAuth();
+const LoginPage = () => {
+    const { user, login } = useAuth();
     const location = useLocation();
     const navigate = useNavigate();
-    // The email is filled in when coming from sign up or password reset.
+    // The email is filled in when coming from registration or password reset.
     const form = useForm({ email: location.state?.email ?? "", password: "" });
     const [isSubmitting, setIsSubmitting] = useState(false);
-    useDocumentTitle("Sign in");
+    useDocumentTitle("Log in");
 
     if (user && !isSubmitting) return <Navigate to="/" replace />;
 
@@ -34,8 +34,8 @@ const SignInPage = () => {
         })) return;
         setIsSubmitting(true);
         try {
-            const session = await requestSignIn({ email, password: form.values.password });
-            signIn(session);
+            const session = await requestLogin({ email, password: form.values.password });
+            login(session);
             toast.success(`Welcome back, ${session.user.name || session.user.username}!`);
             navigate(safeReturnPath(location.state?.from), { replace: true });
         } catch (error) {
@@ -47,9 +47,9 @@ const SignInPage = () => {
     return (
         <AuthLayout
             title="Welcome back"
-            subtitle="Sign in to like, comment and upload."
+            subtitle="Log in to like, comment and upload."
             onSubmit={handleSubmit}
-            footer={<>New to Veo? <TextButton as={Link} to="/signup" tone="accent">Create an account</TextButton></>}
+            footer={<>New to Veo? <TextButton as={Link} to="/register" tone="accent">Register</TextButton></>}
         >
             <Field label="Email" error={form.errors.email}>
                 <Input type="email" autoComplete="email" autoFocus={!form.values.email} {...form.bind("email")} />
@@ -61,9 +61,9 @@ const SignInPage = () => {
             >
                 <PasswordInput autoComplete="current-password" autoFocus={Boolean(form.values.email)} {...form.bind("password")} />
             </Field>
-            <Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? "Signing in…" : "Sign in"}</Button>
+            <Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? "Logging in…" : "Log in"}</Button>
         </AuthLayout>
     );
 };
 
-export default SignInPage;
+export default LoginPage;

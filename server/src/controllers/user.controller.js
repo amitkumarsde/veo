@@ -2,19 +2,19 @@ import * as authService from "../services/auth.service.js";
 import * as userService from "../services/user.service.js";
 import { sendSuccess } from "../utils/response.js";
 
-export const signUp = async (req, res) => {
-    await authService.signUp(req.validated.body);
-    sendSuccess(res, null, { status: 201, message: "Account created. Welcome to Veo!" });
+export const register = async (req, res) => {
+    await authService.register(req.validated.body);
+    sendSuccess(res, null, 201);
 };
 
-export const signIn = async (req, res) => {
-    const session = await authService.signIn(req.validated.body);
-    sendSuccess(res, session, { message: `Welcome back, ${session.user.name || session.user.username}!` });
+export const login = async (req, res) => {
+    const session = await authService.login(req.validated.body);
+    sendSuccess(res, session);
 };
 
 export const resetPassword = async (req, res) => {
     await authService.resetPassword(req.validated.body);
-    sendSuccess(res, null, { message: "Password changed. Sign in with your new password." });
+    sendSuccess(res);
 };
 
 export const getMe = async (req, res) => {
@@ -23,10 +23,10 @@ export const getMe = async (req, res) => {
 
 export const updateMe = async (req, res) => {
     const user = await userService.updateProfile(req.user.id, req.validated.body, req.uploads);
-    sendSuccess(res, user, { message: "Profile saved." });
+    sendSuccess(res, user);
 };
 
 export const deleteMe = async (req, res) => {
     await userService.deleteAccount(req.user.id, req.validated.body.password);
-    sendSuccess(res, null, { message: "Your account has been deleted." });
+    sendSuccess(res);
 };

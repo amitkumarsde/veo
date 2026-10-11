@@ -9,35 +9,59 @@ import multer from "multer";
 import { FILE_EXTENSIONS, FILE_KINDS } from "../constants/uploads.js";
 import { badRequest, fieldError, payloadTooLarge, serviceUnavailable } from "../errors/app-error.js";
 import { UPLOADS_UNAVAILABLE_MESSAGE, isStorageEnabled } from "../services/storage.service.js";
+import { rateLimit } from "./rate-limit.middleware.js";
 
 // Uploads go to a temp folder first (big videos never sit in memory), get checked, then get stored.
 const TEMP_DIR = path.join(os.tmpdir(), "veo-uploads");
 fs.mkdirSync(TEMP_DIR, { recursive: true });
 
-const HEADER_BYTES = 16;
+// Enough of the start of a file to read the MP4 brand list, the WebM doctype and the Ogg codec.
+const HEADER_BYTES = 64;
 const MAX_TEXT_FIELDS = 20;
 const MAX_TEXT_FIELD_BYTES = 64 * 1024;
-// File brands that are still images or audio, not playable video.
+// MP4 brands that browsers play; QuickTime (.mov), 3GP, HEIC images and M4A audio are not among them.
+const MP4_BRANDS = new Set(["isom", "iso2", "iso3", "iso4", "iso5", "iso6", "iso8", "mp41", "mp42", "avc1", "dash", "mmp4", "M4V ", "M4VH", "M4VP", "MSNV"]);
+// Main brands of image and audio files, which also list the MP4 brands above as compatible.
 const NON_VIDEO_BRANDS = new Set(["heic", "heix", "hevc", "hevx", "heim", "heis", "mif1", "msf1", "avif", "avis", "M4A ", "M4B ", "M4P "]);
+
+// Uploads fill temp disk, so each user can send at most 20 every 15 minutes.
+const uploadLimit = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 20,
+    keyFor: (req) => req.user.id,
+    message: "Too many uploads. Please try again in 15 minutes.",
+});
 
 const typeNames = (kind) => kind.types.map((type) => FILE_EXTENSIONS[type].toUpperCase()).join(", ");
 
-// Finds the real type from the first bytes, so a renamed HTML or SVG file can't pass as an image.
+// Reads the MP4 brand list: the main brand, then the brands the file also works as.
+const isPlayableMp4 = (header, ascii) => {
+    if (ascii(4, 8) !== "ftyp" || NON_VIDEO_BRANDS.has(ascii(8, 12))) return false;
+    const boxEnd = Math.min(header.length, header.readUInt32BE(0));
+    const brands = [ascii(8, 12)];
+    for (let offset = 16; offset + 4 <= boxEnd; offset += 4) brands.push(ascii(offset, offset + 4));
+    return brands.some((brand) => MP4_BRANDS.has(brand));
+};
+
+// Finds the real type from the first bytes, so a renamed HTML/SVG file or a MOV, MKV or audio file can't pass.
 const detectContentType = (header) => {
     const ascii = (start, end) => header.toString("latin1", start, end);
+    if (header.length < 12) return null;
     if (header[0] === 0xff && header[1] === 0xd8 && header[2] === 0xff) return "image/jpeg";
     if (header[0] === 0x89 && ascii(1, 4) === "PNG") return "image/png";
     if (ascii(0, 4) === "GIF8") return "image/gif";
     if (ascii(0, 4) === "RIFF" && ascii(8, 12) === "WEBP") return "image/webp";
-    if (ascii(4, 8) === "ftyp" && !NON_VIDEO_BRANDS.has(ascii(8, 12))) return "video/mp4";
-    if (header[0] === 0x1a && header[1] === 0x45 && header[2] === 0xdf && header[3] === 0xa3) return "video/webm";
-    if (ascii(0, 4) === "OggS") return "video/ogg";
+    if (isPlayableMp4(header, ascii)) return "video/mp4";
+    // A Matroska file is WebM only when it says "webm" inside.
+    if (header[0] === 0x1a && header[1] === 0x45 && header[2] === 0xdf && header[3] === 0xa3 && ascii(0, header.length).includes("webm")) return "video/webm";
+    // The first Ogg page names its codec: Theora is video, Vorbis or Opus is audio only.
+    if (ascii(0, 4) === "OggS" && ascii(0, header.length).includes("\x80theora")) return "video/ogg";
     return null;
 };
 
 const removeFile = (filePath) => fs.promises.rm(filePath, { force: true }).catch(() => {});
 
-// Saves each file to a temp file, stops it when it's over its size limit, and keeps its first bytes to check the type.
+// Saves each file to a temp file, stops it if too big, and keeps its first bytes to check its real type.
 const createTempStorage = (fieldKinds) => ({
     _handleFile(req, file, callback) {
         const kind = FILE_KINDS[fieldKinds[file.fieldname]];
@@ -81,7 +105,7 @@ const checkUploadedFiles = (files, fieldKinds) => {
     return uploads;
 };
 
-// Accepts the given file fields; text fields go to req.body and checked files to req.uploads.
+// Accepts these file fields (limited per user); text goes to req.body, checked files to req.uploads.
 export const acceptUploads = (fieldKinds) => {
     const fieldNames = Object.keys(fieldKinds);
     const parseMultipart = multer({
@@ -103,7 +127,7 @@ export const acceptUploads = (fieldKinds) => {
         },
     }).fields(fieldNames.map((name) => ({ name, maxCount: 1 })));
 
-    return (req, res, next) => {
+    const parseAndCheck = (req, res, next) => {
         // Temp files are removed once the response is done, whatever the outcome.
         res.on("close", () => {
             for (const file of Object.values(req.files ?? {}).flat()) removeFile(file.path);
@@ -118,4 +142,6 @@ export const acceptUploads = (fieldKinds) => {
             }
         });
     };
+    // Must come after requireAuth, which sets req.user.
+    return [uploadLimit, parseAndCheck];
 };

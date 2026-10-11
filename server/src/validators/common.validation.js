@@ -2,7 +2,7 @@ import { z } from "zod";
 
 import { LIMITS } from "../constants/limits.js";
 
-// Unknown fields are dropped and non-text values (like { "$ne": null }) are rejected, which blocks database query tricks.
+// Unknown fields are dropped and only plain values are accepted, which blocks database query tricks.
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

@@ -6,11 +6,11 @@ import { SERVER_STATUS } from "@/features/server-status/server-status";
 import { useServerStatus } from "@/features/server-status/useServerStatus";
 import { useLatest } from "@/hooks/useLatest";
 
-// Message for when the server can't be reached; we load the page again by ourselves once it answers.
+// Message for when the server can't be reached; the page loads again by itself once it answers.
 const ServiceUnavailable = ({ onRetry }) => {
     const status = useServerStatus();
     const onRetryRef = useLatest(onRetry);
-    // We only retry on a change to online, so a page that fails while the server is up can't loop.
+    // Retries only on a change to online, so a page that fails while the server is up can't loop.
     const wasOnlineRef = useRef(status === SERVER_STATUS.online);
 
     useEffect(() => {

@@ -7,6 +7,8 @@ import { TextButton } from "@/components/ui/Button";
 import TextTabs from "@/components/ui/TextTabs";
 import { DEFAULT_SORT, VIDEO_SORT_OPTIONS } from "@/constants/sort-options";
 import { useAuth } from "@/features/auth/useAuth";
+import { SERVER_STATUS } from "@/features/server-status/server-status";
+import { useServerStatus } from "@/features/server-status/useServerStatus";
 import TrendingSection from "@/features/videos/components/TrendingSection";
 import VideoGrid from "@/features/videos/components/VideoGrid";
 import { usePagedVideos } from "@/features/videos/hooks/usePagedVideos";
@@ -33,22 +35,25 @@ const HomeIntro = ({ user }) => (
             {user ? (
                 <TextButton as={Link} to="/upload-video" tone="accent"><Upload size={17} aria-hidden /> Share a video</TextButton>
             ) : (
-                <TextButton as={Link} to="/signup" tone="accent">Join Veo to like, comment and upload <ArrowRight size={17} aria-hidden /></TextButton>
+                <TextButton as={Link} to="/register" tone="accent">Join Veo to like, comment and upload <ArrowRight size={17} aria-hidden /></TextButton>
             )}
         </header>
         <TrendingSection />
     </>
 );
 
-// Category buttons are optional; if they fail to load, the feed still works.
+// Category buttons are optional: the feed works without them, and they load again once the server is back.
 const useCategoryOptions = () => {
-    const [categories, setCategories] = useState([]);
+    const [categories, setCategories] = useState(null);
+    const isOnline = useServerStatus() === SERVER_STATUS.online;
+    const isLoaded = categories !== null;
     useEffect(() => {
+        if (isLoaded) return undefined;
         const controller = new AbortController();
         listCategories(controller.signal).then(setCategories).catch(() => {});
         return () => controller.abort();
-    }, []);
-    return [{ value: ALL_CATEGORIES, label: "All" }, ...categories.map(({ name }) => ({ value: name, label: name }))];
+    }, [isLoaded, isOnline]);
+    return [{ value: ALL_CATEGORIES, label: "All" }, ...(categories ?? []).map(({ name }) => ({ value: name, label: name }))];
 };
 
 const HomePage = () => {
@@ -61,8 +66,11 @@ const HomePage = () => {
     const sort = VIDEO_SORT_OPTIONS.some((option) => option.value === sortParam) ? sortParam : DEFAULT_SORT;
     const debouncedQuery = useDebouncedValue(query, SEARCH_DEBOUNCE_MS);
     const categoryOptions = useCategoryOptions();
-    const isFiltered = Boolean(query) || category !== ALL_CATEGORIES;
-    useDocumentTitle(query ? `“${query}”` : category !== ALL_CATEGORIES ? `#${category}` : null);
+    // Headings and messages follow the query the results are for, not the text still being typed.
+    const isFiltered = Boolean(debouncedQuery) || category !== ALL_CATEGORIES;
+    // The greeting and Trending show only on the plain feed: no search, all categories, newest first.
+    const showIntro = !isFiltered && sort === DEFAULT_SORT;
+    useDocumentTitle(debouncedQuery ? `“${debouncedQuery}”` : category !== ALL_CATEGORIES ? `#${category}` : null);
 
     const fetchPage = useCallback(({ cursor, signal }) => listVideos({
         q: debouncedQuery || undefined,
@@ -89,14 +97,14 @@ const HomePage = () => {
 
     return (
         <div className="animate-rise">
-            {query ? (
+            {debouncedQuery ? (
                 <header>
                     <p className="text-sm text-muted">Search results for</p>
-                    <h1 className="mt-1 break-words text-4xl font-bold text-fg sm:text-5xl">“{query}”</h1>
+                    <h1 className="mt-1 break-words text-4xl font-bold text-fg sm:text-5xl">“{debouncedQuery}”</h1>
                 </header>
-            ) : !isFiltered && <HomeIntro user={user} />}
+            ) : showIntro && <HomeIntro user={user} />}
 
-            <div className={`sticky top-16 z-20 -mx-4 mb-10 flex flex-col border-b border-border bg-canvas px-4 sm:-mx-8 sm:flex-row sm:items-end sm:justify-between sm:gap-8 sm:px-8 ${isFiltered && !query ? "" : "mt-14"}`}>
+            <div className={`sticky top-16 z-20 -mx-4 mb-10 flex flex-col border-b border-border bg-canvas px-4 sm:-mx-8 sm:flex-row sm:items-end sm:justify-between sm:gap-8 sm:px-8 ${debouncedQuery || showIntro ? "mt-14" : ""}`}>
                 <TextTabs options={categoryOptions} value={category} onChange={(value) => setParam("category", value, ALL_CATEGORIES)} label="Categories" className="min-w-0" />
                 <TextTabs options={VIDEO_SORT_OPTIONS} value={sort} onChange={(value) => setParam("sort", value, DEFAULT_SORT)} label="Sort" className="shrink-0 border-t border-border sm:border-t-0" />
             </div>
@@ -105,7 +113,7 @@ const HomePage = () => {
                 list={videos}
                 empty={(
                     <EmptyState
-                        title={query ? `Nothing found for “${query}”` : "No videos here yet"}
+                        title={debouncedQuery ? `Nothing found for “${debouncedQuery}”` : "No videos here yet"}
                         message={isFiltered ? "Try a different word or category." : "Be the first to upload one."}
                         action={isFiltered && <TextButton tone="accent" onClick={clearFilters}>Clear filters</TextButton>}
                     />

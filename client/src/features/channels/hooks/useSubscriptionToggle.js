@@ -3,13 +3,13 @@ import { toast } from "react-toastify";
 import { useOptimisticAction } from "@/hooks/useOptimisticAction";
 import { setSubscription } from "@/services/channel.service";
 
-// Subscribe or unsubscribe: we show a guess at once (`delta`), then the exact count from the server.
-export const useSubscriptionToggle = ({ channelId, isSubscribed, isSignedIn, applySubscription }) => {
+// Subscribe or unsubscribe: shows a guess at once (`delta`), then the exact count from the server.
+export const useSubscriptionToggle = ({ channelId, isSubscribed, isLoggedIn, applySubscription }) => {
     const { run, isPending } = useOptimisticAction();
 
     const toggleSubscription = () => {
-        if (!isSignedIn) {
-            toast.info("Sign in to subscribe.");
+        if (!isLoggedIn) {
+            toast.info("Log in to subscribe.");
             return;
         }
         const subscribed = !isSubscribed;

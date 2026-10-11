@@ -32,8 +32,8 @@ const ForgotPasswordPage = () => {
         setIsSubmitting(true);
         try {
             await resetPassword({ email, newPassword });
-            toast.success("Password changed. Sign in with your new password.");
-            navigate("/signin", { replace: true, state: { email } });
+            toast.success("Password changed. Log in with your new password.");
+            navigate("/login", { replace: true, state: { email } });
         } catch (error) {
             form.showServerError(error, "Couldn't change the password. Please try again.");
             setIsSubmitting(false);
@@ -45,7 +45,7 @@ const ForgotPasswordPage = () => {
             title="Reset password"
             subtitle="Enter your account email and choose a new password."
             onSubmit={handleSubmit}
-            footer={<>Remembered it? <TextButton as={Link} to="/signin" tone="accent">Back to sign in</TextButton></>}
+            footer={<>Remembered it? <TextButton as={Link} to="/login" tone="accent">Back to log in</TextButton></>}
         >
             <Field label="Email" error={form.errors.email}>
                 <Input type="email" autoComplete="email" autoFocus={!form.values.email} {...form.bind("email")} />

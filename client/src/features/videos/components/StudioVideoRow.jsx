@@ -7,6 +7,7 @@ import { useConfirm } from "@/features/confirm/useConfirm";
 import { deleteVideo } from "@/services/video.service";
 import { getErrorMessage } from "@/utils/errors";
 import { countLabel, timeAgo } from "@/utils/format";
+import { editVideoPath, videoPath } from "@/utils/paths";
 
 const ROW_GRID = "grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 sm:gap-x-5 md:grid-cols-[8rem_minmax(0,1fr)_8rem]";
 
@@ -14,8 +15,8 @@ const ROW_GRID = "grid grid-cols-[6.5rem_minmax(0,1fr)] gap-x-4 sm:gap-x-5 md:gr
 const StudioVideoRow = ({ video, onDeleted }) => {
     const confirm = useConfirm();
     const [isDeleting, setIsDeleting] = useState(false);
-    const videoPath = `/video/${video.videoId}`;
-    const editPath = `/update-video/${video.videoId}`;
+    const watchPath = videoPath(video.videoId);
+    const editPath = editVideoPath(video.videoId);
 
     const handleDelete = async () => {
         const confirmed = await confirm({
@@ -45,11 +46,11 @@ const StudioVideoRow = ({ video, onDeleted }) => {
 
     return (
         <div className={`${ROW_GRID} items-center py-5 ${isDeleting ? "opacity-50" : ""}`}>
-            <Link to={videoPath} tabIndex={-1} aria-hidden className="block overflow-hidden rounded-ui bg-surface-2">
+            <Link to={watchPath} tabIndex={-1} aria-hidden className="block overflow-hidden rounded-ui bg-surface-2">
                 <img src={video.thumbnailUrl} alt="" loading="lazy" decoding="async" className="aspect-video w-full object-cover" />
             </Link>
             <div className="min-w-0">
-                <Link to={videoPath} className="line-clamp-2 text-[15px] font-semibold leading-snug text-fg transition-colors hover:text-accent">{video.title}</Link>
+                <Link to={watchPath} className="line-clamp-2 text-[15px] font-semibold leading-snug text-fg transition-colors hover:text-accent">{video.title}</Link>
                 <p className="mt-1 text-[13px] text-muted">
                     {timeAgo(video.uploadDate)} · {countLabel(video.views, "view")} · {countLabel(video.likes, "like")} · {countLabel(video.commentCount, "comment")}
                 </p>

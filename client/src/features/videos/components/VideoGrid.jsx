@@ -12,7 +12,7 @@ const VideoGrid = ({ list, empty, showChannel = true, skeletonCount = SKELETON_C
             : list.items.length === 0
                 ? empty
                 : list.items.map((video) => <VideoCard key={video.videoId} video={video} showChannel={showChannel} />)}
-        <LoadMore hasMore={list.hasMore} loading={list.loadingMore} onLoadMore={list.loadMore} />
+        <LoadMore hasMore={list.hasMore} loading={list.loadingMore} failed={list.loadMoreFailed} onLoadMore={list.loadMore} />
     </div>
 );
 

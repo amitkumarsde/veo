@@ -11,6 +11,7 @@ import VideoDetails from "@/features/videos/components/VideoDetails";
 import VideoPlayerFrame from "@/features/videos/components/VideoPlayerFrame";
 import { useVideoEngagement } from "@/features/videos/hooks/useVideoEngagement";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useRefreshOnUserChange } from "@/hooks/useRefreshOnUserChange";
 import { useResource } from "@/hooks/useResource";
 import { getVideo, listRelatedVideos, recordView } from "@/services/video.service";
 
@@ -32,11 +33,11 @@ const UpNext = ({ videoId }) => {
     );
 };
 
-const VideoPage = () => {
-    const { videoId } = useParams();
+const VideoView = ({ videoId }) => {
     const { user } = useAuth();
-    const { data: video, error, loading, setData: setVideo, reload } = useResource((signal) => getVideo(videoId, signal), videoId);
-    const engagement = useVideoEngagement({ video, updateVideo: setVideo, isSignedIn: Boolean(user) });
+    const { data: video, error, loading, setData: setVideo, reload, refresh } = useResource((signal) => getVideo(videoId, signal), videoId);
+    useRefreshOnUserChange(refresh);
+    const engagement = useVideoEngagement({ video, updateVideo: setVideo, isLoggedIn: Boolean(user) });
     useDocumentTitle(video?.title);
 
     useEffect(() => { recordView(videoId); }, [videoId]);
@@ -72,6 +73,12 @@ const VideoPage = () => {
             <UpNext videoId={videoId} />
         </div>
     );
+};
+
+// A fresh page per video, so a like, subscribe or comment still saving for the last video can't land on this one.
+const VideoPage = () => {
+    const { videoId } = useParams();
+    return <VideoView key={videoId} videoId={videoId} />;
 };
 
 export default VideoPage;

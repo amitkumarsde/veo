@@ -1,4 +1,4 @@
-// URL-safe id from a name: "My Channel!" -> "my-channel".
+// URL-safe id from a name: "Chess Club!" -> "chess-club".
 export const slugify = (value) =>
     String(value ?? "")
         .normalize("NFKD")

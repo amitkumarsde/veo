@@ -7,6 +7,7 @@ import { likeRepository } from "../repositories/like.repository.js";
 import { subscriptionRepository } from "../repositories/subscription.repository.js";
 import { videoRepository } from "../repositories/video.repository.js";
 import { VIDEO_SORTS } from "../utils/pagination.js";
+import { inTransaction } from "../utils/transaction.js";
 import { deleteStoredFiles, isStoredUrl, withStoredFiles } from "./storage.service.js";
 
 const TOP_CATEGORY_LIMIT = 30;
@@ -18,8 +19,8 @@ const invalidateCategoryCache = () => { categoryCache = { expiresAt: 0, items: [
 const storedFilesOf = (video) => [video.thumbnailUrl, video.videoSource === VIDEO_SOURCES.upload ? video.videoUrl : null];
 
 const toVideoDetail = (video) => {
-    const { _id, videoId, title, description, thumbnailUrl, videoUrl, videoSource, category, channelId, uploader, views, likes, commentCount, uploadDate } = video;
-    return { _id, videoId, title, description, thumbnailUrl, videoUrl, videoSource, category, channelId, uploader, views, likes, commentCount, uploadDate };
+    const { videoId, title, description, thumbnailUrl, videoUrl, videoSource, category, channelId, uploader, views, likes, commentCount, uploadDate } = video;
+    return { videoId, title, description, thumbnailUrl, videoUrl, videoSource, category, channelId, uploader, views, likes, commentCount, uploadDate };
 };
 
 // Adds each video's channel with one query instead of one per card.
@@ -85,15 +86,21 @@ export const createVideo = async (uploader, { title, description, category, chan
     if (videoFile && videoUrl) throw badRequest("Use either a video link or a video file, not both.");
     if (videoUrl) assertLinkIsExternal(videoUrl);
 
-    const channel = await channelRepository.findOwnerAndName(channelId);
-    if (!channel) throw notFound("Channel not found.");
-    if (channel.owner !== uploader) throw forbidden("You can only upload to your own channel.");
+    const findOwnChannel = async () => {
+        const channel = await channelRepository.findOwnerAndName(channelId);
+        if (!channel) throw notFound("Channel not found.");
+        if (channel.owner !== uploader) throw forbidden("You can only upload to your own channel.");
+        return channel;
+    };
+    await findOwnChannel();
 
     const video = await withStoredFiles(async (store) => {
         const thumbnailUrl = await store(thumbnail, STORAGE_FOLDERS.thumbnails, uploader);
         const source = videoFile
             ? { videoUrl: await store(videoFile, STORAGE_FOLDERS.videos, uploader), videoSource: VIDEO_SOURCES.upload }
             : { videoUrl, videoSource: VIDEO_SOURCES.link };
+        // A big upload can take minutes, so the channel is checked again (and its current name read).
+        const channel = await findOwnChannel();
         return videoRepository.create({ title, description, category, channelId, channelName: channel.channelName, uploader, thumbnailUrl, ...source });
     });
     invalidateCategoryCache();
@@ -128,31 +135,40 @@ export const updateVideo = async (videoId, uploader, { title, description, categ
     return toVideoDetail(video);
 };
 
-// I delete child records first, so if this stops half way, running it again finishes the job.
-export const deleteVideosWhere = async (filter) => {
+// Database part of deleting videos with their comments and likes; run it in a transaction, then removeVideoFiles().
+export const removeVideosWhere = async (filter) => {
     const videos = await videoRepository.findStorageInfo(filter);
-    if (!videos.length) return;
+    if (!videos.length) return [];
     const videoIds = videos.map((video) => video.videoId);
-    await Promise.all([commentRepository.deleteManyByVideoIds(videoIds), likeRepository.deleteManyByVideoIds(videoIds)]);
+    // One after the other: queries in a transaction must not run in parallel.
+    await commentRepository.deleteManyByVideoIds(videoIds);
+    await likeRepository.deleteManyByVideoIds(videoIds);
     await videoRepository.deleteByIds(videoIds);
+    return videos;
+};
+
+export const removeVideoFiles = async (videos) => {
+    if (!videos.length) return;
     await deleteStoredFiles(videos.map(storedFilesOf));
     invalidateCategoryCache();
 };
 
 export const deleteVideo = async (videoId, uploader) => {
     await findOwnVideo(videoId, uploader);
-    await deleteVideosWhere({ videoId });
+    await removeVideoFiles(await inTransaction(() => removeVideosWhere({ videoId })));
 };
 
-// Sets the state rather than toggling it, so repeated requests can't double count.
+// Sets the state rather than toggling it, and changes the like and the count together, so counts can't drift.
 export const setLike = async (videoId, username, liked) => {
     if (!(await videoRepository.existsById(videoId))) throw notFound("Video not found.");
-    if (liked) {
-        if (await likeRepository.add(videoId, username)) await videoRepository.incrementLikes([videoId], 1);
-    } else if (await likeRepository.remove(videoId, username)) {
-        await videoRepository.incrementLikes([videoId], -1);
-    }
-    const video = await videoRepository.findLikeCount(videoId);
+    const video = await inTransaction(async () => {
+        if (liked) {
+            if (await likeRepository.add(videoId, username)) await videoRepository.incrementLikes([videoId], 1);
+        } else if (await likeRepository.remove(videoId, username)) {
+            await videoRepository.incrementLikes([videoId], -1);
+        }
+        return videoRepository.findLikeCount(videoId);
+    });
     return { liked, likes: Math.max(0, video?.likes ?? 0) };
 };
 

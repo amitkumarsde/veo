@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useLayoutEffect } from "react";
 import { Link, useNavigate, useParams } from "react-router";
 import { toast } from "react-toastify";
 
@@ -15,6 +15,7 @@ import { useResource } from "@/hooks/useResource";
 import { useUnsavedChanges } from "@/hooks/useUnsavedChanges";
 import { useUploadTask } from "@/hooks/useUploadTask";
 import { getVideo, updateVideo } from "@/services/video.service";
+import { studioPath, videoPath } from "@/utils/paths";
 import { toFormData } from "@/utils/uploads";
 
 const EditVideoPage = () => {
@@ -23,12 +24,13 @@ const EditVideoPage = () => {
     const navigate = useNavigate();
     const videoForm = useVideoForm();
     const upload = useUploadTask();
-    const allowLeave = useUnsavedChanges(videoForm.hasChanges || upload.isUploading);
+    const allowLeave = useUnsavedChanges(videoForm.hasChanges || upload.isUploading, upload.leaveMessage);
     const { data: video, error, loading, reload } = useResource((signal) => getVideo(videoId, signal), videoId);
     const { loadVideo } = videoForm;
     useDocumentTitle("Edit video");
 
-    useEffect(() => {
+    // Before paint, so the form never shows empty fields (or the wrong video source) for a frame.
+    useLayoutEffect(() => {
         if (video) loadVideo(video);
     }, [video, loadVideo]);
 
@@ -40,7 +42,7 @@ const EditVideoPage = () => {
             await upload.run((options) => updateVideo(videoId, toFormData(fields), options));
             allowLeave();
             toast.success("Changes saved");
-            navigate("/studio");
+            navigate(studioPath(video.channelId));
         } catch (saveError) {
             videoForm.showServerError(saveError, "Couldn't save your changes.");
         }
@@ -73,7 +75,7 @@ const EditVideoPage = () => {
                 <>
                     <Button type="submit" disabled={upload.isUploading}>{upload.isUploading ? "Saving…" : "Save changes"}</Button>
                     <TextButton as={Link} to="/studio">Cancel</TextButton>
-                    <TextButton as={Link} to={`/video/${videoId}`} className="sm:ml-auto">View video</TextButton>
+                    <TextButton as={Link} to={videoPath(videoId)} className="sm:ml-auto">View video</TextButton>
                     <UploadProgress progress={upload.progress} />
                 </>
             )}

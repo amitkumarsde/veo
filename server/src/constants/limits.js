@@ -14,4 +14,5 @@ export const LIMITS = Object.freeze({
     comment: 1000,
     search: 100,
     videoUrl: 2000,
+    channelsPerUser: 3,
 });

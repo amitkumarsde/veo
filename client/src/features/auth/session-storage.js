@@ -1,4 +1,4 @@
-// I keep the login in localStorage because the API is on another site, where cookies are often blocked.
+// The login lives in localStorage because the API is on another site, where cookies are often blocked.
 export const TOKEN_KEY = "token";
 export const USER_KEY = "user";
 

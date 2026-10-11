@@ -11,8 +11,8 @@ const name = z.string({ error: "Name is required." }).trim()
 const currentPassword = (message) => z.string({ error: message }).min(1, message).max(1024, message);
 
 export const userSchemas = {
-    signUp: { body: z.object({ name, email, password: newPassword() }) },
-    signIn: {
+    register: { body: z.object({ name, email, password: newPassword() }) },
+    login: {
         body: z.object({
             email: z.string({ error: "Email is required." }).trim().toLowerCase().min(1, "Email is required.").max(LIMITS.email),
             password: currentPassword("Password is required."),

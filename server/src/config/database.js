@@ -5,6 +5,8 @@ import { logger } from "../utils/logger.js";
 
 export const connectDatabase = async () => {
     mongoose.set("strictQuery", true);
+    // Queries inside inTransaction() join its transaction without passing a session around.
+    mongoose.set("transactionAsyncLocalStorage", true);
     await mongoose.connect(config.mongoUrl, {
         autoIndex: !config.isProduction,
         maxPoolSize: 10,

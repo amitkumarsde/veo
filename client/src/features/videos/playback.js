@@ -1,4 +1,4 @@
-// Uploaded files and direct .mp4/.webm links play in a <video> tag; YouTube links use the YouTube player.
+// Uploads and .mp4/.webm links play in a <video> tag; YouTube links use YouTube's player.
 
 export const VIDEO_SOURCES = Object.freeze({ upload: "upload", link: "link" });
 

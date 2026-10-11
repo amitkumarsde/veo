@@ -11,16 +11,16 @@ import { getNewPasswordError } from "@/features/auth/password-rules";
 import { useAuth } from "@/features/auth/useAuth";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useForm } from "@/hooks/useForm";
-import { signUp } from "@/services/user.service";
+import { register } from "@/services/user.service";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const SignUpPage = () => {
+const RegisterPage = () => {
     const { user } = useAuth();
     const navigate = useNavigate();
     const form = useForm({ name: "", email: "", password: "" });
     const [isSubmitting, setIsSubmitting] = useState(false);
-    useDocumentTitle("Create account");
+    useDocumentTitle("Register");
 
     if (user) return <Navigate to="/" replace />;
 
@@ -36,9 +36,9 @@ const SignUpPage = () => {
         })) return;
         setIsSubmitting(true);
         try {
-            await signUp({ name, email, password });
+            await register({ name, email, password });
             toast.success("Account created. Welcome to Veo!");
-            navigate("/signin", { state: { email } });
+            navigate("/login", { state: { email } });
         } catch (error) {
             form.showServerError(error, "Couldn't create your account. Please try again.");
             setIsSubmitting(false);
@@ -50,7 +50,7 @@ const SignUpPage = () => {
             title="Create your account"
             subtitle="It takes less than a minute."
             onSubmit={handleSubmit}
-            footer={<>Already have an account? <TextButton as={Link} to="/signin" tone="accent">Sign in</TextButton></>}
+            footer={<>Already have an account? <TextButton as={Link} to="/login" tone="accent">Log in</TextButton></>}
         >
             <Field label="Name" error={form.errors.name}>
                 <Input autoComplete="name" autoFocus maxLength={LIMITS.name.max} {...form.bind("name")} />
@@ -61,9 +61,9 @@ const SignUpPage = () => {
             <Field label="Password" hint={`At least ${LIMITS.password.min} characters`} error={form.errors.password}>
                 <PasswordInput autoComplete="new-password" maxLength={LIMITS.password.maxBytes} {...form.bind("password")} />
             </Field>
-            <Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? "Creating account…" : "Create account"}</Button>
+            <Button type="submit" disabled={isSubmitting} className="w-full">{isSubmitting ? "Registering…" : "Register"}</Button>
         </AuthLayout>
     );
 };
 
-export default SignUpPage;
+export default RegisterPage;

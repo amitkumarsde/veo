@@ -30,14 +30,16 @@ const ImagePicker = ({ id, shape = "thumbnail", currentUrl = "", file = null, re
     };
 
     return (
-        <div className={isWide ? "space-y-3" : "flex flex-wrap items-center gap-6"}>
+        <div data-picker className={isWide ? "space-y-3" : "flex flex-wrap items-center gap-6"}>
             <button
                 type="button"
+                data-picker-button
                 onClick={openPicker}
                 onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }}
                 onDragLeave={() => setIsDragging(false)}
                 onDrop={(event) => { event.preventDefault(); setIsDragging(false); pickFile(event.dataTransfer.files?.[0]); }}
                 aria-label={`Choose ${label}`}
+                {...ariaProps}
                 className={`${SHAPES[shape]} relative shrink-0 overflow-hidden bg-surface-2 transition-shadow hover:ring-1 hover:ring-border-strong ${isDragging ? "ring-2 ring-accent" : ""}`}
             >
                 {previewUrl ? (

@@ -1,6 +1,6 @@
 import { env } from "@/config/env";
 
-// Tracks if the API answers; while it doesn't, we check again every few seconds so pages can reload by themselves.
+// Tracks if the API answers; while it's down it keeps checking, so pages reload by themselves.
 export const SERVER_STATUS = Object.freeze({ unknown: "unknown", waking: "waking", online: "online", offline: "offline" });
 
 const WAKING_NOTICE_DELAY_MS = 3500;
@@ -28,7 +28,7 @@ export const subscribeToServerStatus = (listener) => {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// "/" answers as soon as the server is running, without the database or a sign-in.
+// "/" answers as soon as the server is running, without the database or a login.
 const apiAnswers = async () => {
     try {
         const response = await fetch(`${env.apiUrl}/`, { cache: "no-store", signal: AbortSignal.timeout(RECHECK_TIMEOUT_MS) });
@@ -48,7 +48,7 @@ const recheckUntilOnline = async () => {
     isRechecking = false;
 };
 
-// Returns whether we counted the request; the matching mark call gets this back when the request ends.
+// Returns whether the request was counted; the matching mark call gets this back when the request ends.
 export const markRequestStarted = () => {
     if (status === SERVER_STATUS.online) return false;
     pendingRequests += 1;
@@ -80,7 +80,7 @@ export const markServerUnreachable = (wasCounted) => {
     recheckUntilOnline();
 };
 
-// A request that ended without telling us anything (e.g. cancelled).
+// A request that ended with no answer either way (e.g. cancelled).
 export const markRequestSettled = (wasCounted) => {
     finishRequest(wasCounted);
     if (pendingRequests === 0 && status === SERVER_STATUS.waking) setStatus(SERVER_STATUS.unknown);

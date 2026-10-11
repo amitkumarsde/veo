@@ -4,7 +4,7 @@ import { logger } from "../utils/logger.js";
 
 const QUIET_PATHS = new Set(["/", "/health"]);
 
-// We give each request an id for the logs and write one line when it ends, without the query string.
+// Gives each request an id for the logs and writes one line when it ends, without the query string.
 export const requestLogger = (req, res, next) => {
     req.id = randomUUID();
 

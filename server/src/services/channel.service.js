@@ -1,3 +1,4 @@
+import { LIMITS } from "../constants/limits.js";
 import { STORAGE_FOLDERS } from "../constants/uploads.js";
 import { badRequest, conflict, fieldError, forbidden, notFound } from "../errors/app-error.js";
 import { channelRepository } from "../repositories/channel.repository.js";
@@ -5,27 +6,28 @@ import { subscriptionRepository } from "../repositories/subscription.repository.
 import { videoRepository } from "../repositories/video.repository.js";
 import { isDuplicateKeyError } from "../utils/mongo-errors.js";
 import { slugify } from "../utils/slugify.js";
+import { inTransaction } from "../utils/transaction.js";
 import { deleteStoredFiles, withStoredFiles } from "./storage.service.js";
-import { deleteVideosWhere } from "./video.service.js";
+import { removeVideoFiles, removeVideosWhere } from "./video.service.js";
 
 const NAME_TAKEN = "That channel name is taken. Try another.";
-const ONE_CHANNEL_ONLY = "You already have a channel. Each account can have only one.";
+const CHANNEL_LIMIT_REACHED = `You already have ${LIMITS.channelsPerUser} channels, the most an account can have. Delete one to create another.`;
 const CHANNEL_ID_ATTEMPTS = 5;
 
 const toPublicChannel = (channel) => {
-    const { channelId, channelName, owner, description, channelBannerURL, channelAvatarURL, subscribers, createdAt } = channel;
-    return { channelId, channelName, owner, description, channelBannerURL, channelAvatarURL, subscribers: Math.max(0, subscribers ?? 0), createdAt };
+    const { channelId, channelName, owner, description, channelBannerURL, channelAvatarURL, subscribers } = channel;
+    return { channelId, channelName, owner, description, channelBannerURL, channelAvatarURL, subscribers: Math.max(0, subscribers ?? 0) };
 };
 
-// The unique indexes are the real guard against two requests at once; this gives their error a clear message.
+// Unique indexes stop two requests at once; this turns their error into a clear message.
 const rethrowDuplicate = (error) => {
     if (!isDuplicateKeyError(error)) throw error;
-    if (error.keyPattern?.owner) throw conflict(ONE_CHANNEL_ONLY);
-    if (error.keyPattern?.channelId) throw conflict("Please try again.");
+    // Same owner place or same URL id taken by a request at the same moment.
+    if (error.keyPattern?.owner || error.keyPattern?.channelId) throw conflict("Please try again.");
     throw fieldError(409, "channelName", NAME_TAKEN);
 };
 
-// Makes the URL id from the name ("My Chess!" -> "my-chess"), adding a number if it's taken.
+// Makes the URL id from the name ("Chess Club!" -> "chess-club"), adding a number if it's taken.
 const createChannelId = async (channelName) => {
     const base = slugify(channelName) || "channel";
     for (let attempt = 0; attempt < CHANNEL_ID_ATTEMPTS; attempt += 1) {
@@ -35,6 +37,13 @@ const createChannelId = async (channelName) => {
     return `${base}-${Date.now().toString(36)}`;
 };
 
+// The owner's first free channel place, or null when all are used.
+const findFreeSlot = async (owner) => {
+    const usedSlots = new Set(await channelRepository.findSlotsByOwner(owner));
+    for (let slot = 0; slot < LIMITS.channelsPerUser; slot += 1) if (!usedSlots.has(slot)) return slot;
+    return null;
+};
+
 const findOwnChannel = async (channelId, username) => {
     const channel = await channelRepository.findByIdForUpdate(channelId);
     if (!channel) throw notFound("Channel not found.");
@@ -42,7 +51,8 @@ const findOwnChannel = async (channelId, username) => {
     return channel;
 };
 
-export const findChannelIdByOwner = async (username) => (await channelRepository.findIdByOwner(username))?.channelId ?? null;
+// What the account needs to list and switch between its channels.
+export const listOwnChannels = (username) => channelRepository.findSummariesByOwner(username);
 
 export const getChannel = async (channelId, viewer) => {
     const channel = await channelRepository.findPublicById(channelId);
@@ -55,11 +65,12 @@ export const getChannel = async (channelId, viewer) => {
 };
 
 export const createChannel = async (owner, { channelName, description }, { banner, logo }) => {
-    if (await channelRepository.existsByOwner(owner)) throw conflict(ONE_CHANNEL_ONLY);
+    const slot = await findFreeSlot(owner);
+    if (slot === null) throw conflict(CHANNEL_LIMIT_REACHED);
     if (await channelRepository.existsByName(channelName)) throw fieldError(409, "channelName", NAME_TAKEN);
 
     const channelId = await createChannelId(channelName);
-    const channel = channelRepository.build({ channelId, channelName, owner, description });
+    const channel = channelRepository.build({ channelId, channelName, owner, slot, description });
     await withStoredFiles(async (store) => {
         if (banner) channel.channelBannerURL = await store(banner, STORAGE_FOLDERS.channelBanners, owner);
         if (logo) channel.channelAvatarURL = await store(logo, STORAGE_FOLDERS.channelLogos, owner);
@@ -90,24 +101,32 @@ export const updateChannel = async (channelId, owner, { channelName, description
             replacedFiles.push(channel.channelAvatarURL);
             channel.channelAvatarURL = logo ? await store(logo, STORAGE_FOLDERS.channelLogos, owner) : "";
         }
-        await channel.save().catch(rethrowDuplicate);
+        // The new name is copied onto the channel's videos (for search) in the same step.
+        await inTransaction(async () => {
+            await channel.save().catch(rethrowDuplicate);
+            if (isRenamed) await videoRepository.renameChannel(channelId, channel.channelName);
+        });
     });
-    if (isRenamed) await videoRepository.renameChannel(channelId, channel.channelName);
     await deleteStoredFiles(replacedFiles);
     return toPublicChannel(channel);
 };
 
-// Removes a channel with its videos (and their comments, likes, files) and its subscriptions.
-export const deleteChannelCascade = async (channel) => {
-    await deleteVideosWhere({ channelId: channel.channelId });
+// Database part of deleting a channel, its videos and its subscriptions; run it in a transaction, then removeChannelFiles().
+export const removeChannel = async (channel) => {
+    const videos = await removeVideosWhere({ channelId: channel.channelId });
     await subscriptionRepository.deleteManyByChannel(channel.channelId);
     await channelRepository.deleteById(channel.channelId);
+    return { channel, videos };
+};
+
+export const removeChannelFiles = async ({ channel, videos }) => {
+    await removeVideoFiles(videos);
     await deleteStoredFiles(channel.channelBannerURL, channel.channelAvatarURL);
 };
 
 export const deleteChannel = async (channelId, owner) => {
     const channel = await findOwnChannel(channelId, owner);
-    await deleteChannelCascade(channel);
+    await removeChannelFiles(await inTransaction(() => removeChannel(channel)));
 };
 
 // Sets the state rather than toggling it, so repeated requests can't double count.
@@ -116,11 +135,14 @@ export const setSubscription = async (channelId, username, subscribed) => {
     if (!channel) throw notFound("Channel not found.");
     if (channel.owner === username) throw badRequest("You can't subscribe to your own channel.");
 
-    if (subscribed) {
-        if (await subscriptionRepository.add(channelId, username)) await channelRepository.incrementSubscribers([channelId], 1);
-    } else if (await subscriptionRepository.remove(channelId, username)) {
-        await channelRepository.incrementSubscribers([channelId], -1);
-    }
-    const updated = await channelRepository.findSubscriberCount(channelId);
+    // The subscription and the count change together, so they can't get out of step.
+    const updated = await inTransaction(async () => {
+        if (subscribed) {
+            if (await subscriptionRepository.add(channelId, username)) await channelRepository.incrementSubscribers([channelId], 1);
+        } else if (await subscriptionRepository.remove(channelId, username)) {
+            await channelRepository.incrementSubscribers([channelId], -1);
+        }
+        return channelRepository.findSubscriberCount(channelId);
+    });
     return { subscribed, subscribers: Math.max(0, updated?.subscribers ?? 0) };
 };

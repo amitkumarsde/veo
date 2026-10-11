@@ -7,8 +7,7 @@ export const useObjectUrl = (file) => {
     useEffect(() => {
         if (!file) return undefined;
         const url = URL.createObjectURL(file);
-        // I create and free the URL in one effect, so React's double run in development can't free a URL in use.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- one effect makes and frees the URL, so React's double run can't free a URL in use
         setPreview({ file, url });
         return () => URL.revokeObjectURL(url);
     }, [file]);

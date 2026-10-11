@@ -1,4 +1,4 @@
-// Sign in / sign up / reset: a brand panel on large screens, the form beside it.
+// Log in / register / reset: a brand panel on large screens, the form beside it.
 const AuthLayout = ({ title, subtitle, onSubmit, children, footer }) => (
     <section className="animate-rise mx-auto grid min-h-[calc(100vh-10rem)] max-w-6xl items-center gap-12 py-6 lg:grid-cols-2 lg:gap-20">
         <div className="hidden lg:block">

@@ -1,9 +1,9 @@
 import { Video } from "../models/video.model.js";
 import { findPage } from "../utils/pagination.js";
 
-// What a video card needs: no long description and no media URL.
-const CARD_FIELDS = "videoId title thumbnailUrl category channelId uploader views likes commentCount uploadDate";
-const DETAIL_FIELDS = `${CARD_FIELDS} description videoUrl videoSource`;
+// What a video card needs: no long description and no media URL (_id stays for paging).
+const CARD_FIELDS = "videoId title thumbnailUrl channelId views likes commentCount uploadDate";
+const DETAIL_FIELDS = `${CARD_FIELDS} category uploader description videoUrl videoSource -_id`;
 const RELATED_LIMIT = 12;
 
 export const videoRepository = {
@@ -35,7 +35,7 @@ export const videoRepository = {
             { $sort: { count: -1, _id: 1 } },
             { $limit: limit },
         ]);
-        return rows.map((row) => ({ name: row._id, count: row.count }));
+        return rows.map((row) => ({ name: row._id }));
     },
     incrementViews: (videoId) => Video.updateOne({ videoId }, { $inc: { views: 1 } }),
     incrementLikes: (videoIds, amount) => Video.updateMany({ videoId: { $in: videoIds } }, { $inc: { likes: amount } }),

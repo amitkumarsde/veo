@@ -19,8 +19,8 @@ export const router = createBrowserRouter([
         hydrateFallbackElement: <Spinner />,
         children: [
             { index: true, element: <HomePage /> },
-            { path: "signin", lazy: lazyPage("signIn") },
-            { path: "signup", lazy: lazyPage("signUp") },
+            { path: "login", lazy: lazyPage("login") },
+            { path: "register", lazy: lazyPage("register") },
             { path: "forgot-password", lazy: lazyPage("forgotPassword") },
             { path: "channel/:channelId", lazy: lazyPage("channel") },
             { path: "video/:videoId", lazy: lazyPage("video") },

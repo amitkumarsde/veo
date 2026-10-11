@@ -7,19 +7,19 @@ import { subscriptionRepository } from "../repositories/subscription.repository.
 import { userRepository } from "../repositories/user.repository.js";
 import { videoRepository } from "../repositories/video.repository.js";
 import { isPasswordCorrect } from "../utils/password.js";
-import { deleteChannelCascade, findChannelIdByOwner } from "./channel.service.js";
+import { inTransaction } from "../utils/transaction.js";
+import { listOwnChannels, removeChannel, removeChannelFiles } from "./channel.service.js";
 import { deleteStoredFiles, withStoredFiles } from "./storage.service.js";
-import { deleteVideosWhere } from "./video.service.js";
+import { removeVideoFiles, removeVideosWhere } from "./video.service.js";
 
 // The account as the client sees it, without the password hash or internal fields.
 export const toPublicUser = async (user) => ({
-    _id: String(user._id),
     username: user.username,
     name: user.name ?? "",
     email: user.email,
     avatarURL: user.avatarURL ?? "",
     bio: user.bio ?? "",
-    channelId: await findChannelIdByOwner(user.username),
+    channels: await listOwnChannels(user.username),
     createdAt: user.createdAt,
 });
 
@@ -48,29 +48,36 @@ export const updateProfile = async (userId, { name, bio, removeAvatar }, { avata
     return toPublicUser(user);
 };
 
-// Deletes the account and everything linked to its @handle, so a new user with that handle starts clean.
+// Deletes the account and everything linked to its @handle in one transaction, so a new user with that handle starts clean.
 export const deleteAccount = async (userId, password) => {
     const user = await findExistingUser(userRepository.findByIdWithPassword, userId);
     // 403, not 401: the session is valid, only the confirmation is wrong.
     if (!(await isPasswordCorrect(password, user.password))) throw fieldError(403, "password", "Incorrect password.");
     const { username } = user;
 
-    const channel = await channelRepository.findByOwner(username);
-    if (channel) await deleteChannelCascade(channel);
-    await deleteVideosWhere({ uploader: username });
+    const removed = await inTransaction(async () => {
+        const channels = [];
+        for (const channel of await channelRepository.findAllByOwner(username)) channels.push(await removeChannel(channel));
+        const videos = await removeVideosWhere({ uploader: username });
 
-    const commentCounts = await commentRepository.countPerVideoByAuthor(username);
-    if (commentCounts.length) await videoRepository.decrementCommentCounts(commentCounts);
-    await commentRepository.deleteManyByAuthor(username);
+        const commentCounts = await commentRepository.countPerVideoByAuthor(username);
+        if (commentCounts.length) await videoRepository.decrementCommentCounts(commentCounts);
+        await commentRepository.deleteManyByAuthor(username);
 
-    const likedVideoIds = await likeRepository.findVideoIdsByUser(username);
-    if (likedVideoIds.length) await videoRepository.incrementLikes(likedVideoIds, -1);
-    await likeRepository.deleteManyByUser(username);
+        const likedVideoIds = await likeRepository.findVideoIdsByUser(username);
+        if (likedVideoIds.length) await videoRepository.incrementLikes(likedVideoIds, -1);
+        await likeRepository.deleteManyByUser(username);
 
-    const subscribedChannelIds = await subscriptionRepository.findChannelIdsByUser(username);
-    if (subscribedChannelIds.length) await channelRepository.incrementSubscribers(subscribedChannelIds, -1);
-    await subscriptionRepository.deleteManyByUser(username);
+        const subscribedChannelIds = await subscriptionRepository.findChannelIdsByUser(username);
+        if (subscribedChannelIds.length) await channelRepository.incrementSubscribers(subscribedChannelIds, -1);
+        await subscriptionRepository.deleteManyByUser(username);
 
-    await userRepository.deleteById(user._id);
+        await userRepository.deleteById(user._id);
+        return { channels, videos };
+    });
+
+    // Files go only after the database change has committed.
+    for (const channel of removed.channels) await removeChannelFiles(channel);
+    await removeVideoFiles(removed.videos);
     await deleteStoredFiles(user.avatarURL);
 };

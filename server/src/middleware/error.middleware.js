@@ -18,8 +18,9 @@ const MULTER_MESSAGES = {
 
 export const notFoundHandler = (req, res) => sendError(res, 404, `Route not found: ${req.method} ${req.path}`);
 
-// Turns every error into the same JSON shape; unexpected errors are logged and their details stay hidden.
+// Sends every error in the same JSON shape; unexpected ones are logged and their details hidden.
 export const errorHandler = (error, req, res, next) => {
+    if (res.headersSent) return next(error);
     if (error instanceof AppError) return sendError(res, error.statusCode, error.message, error.fields ? { fields: error.fields } : {});
 
     if (error instanceof multer.MulterError) {
@@ -36,6 +37,5 @@ export const errorHandler = (error, req, res, next) => {
     if (error?.type === "entity.too.large") return sendError(res, 413, "Request body is too large.");
 
     logger.error("Unhandled error", { requestId: req.id, method: req.method, path: req.path, error: error?.stack ?? String(error) });
-    if (res.headersSent) return next(error);
     return sendError(res, 500, "Something went wrong. Please try again.");
 };

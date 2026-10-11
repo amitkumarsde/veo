@@ -12,6 +12,7 @@ const commaList = z.preprocess(blankToUndefined, z.string().default(""))
 const envSchema = z.object({
     NODE_ENV: z.preprocess(blankToUndefined, z.enum(["development", "production"]).default("development")),
     PORT: z.preprocess(blankToUndefined, z.coerce.number().int().positive().default(5000)),
+    TRUST_PROXY_HOPS: z.preprocess(blankToUndefined, z.coerce.number().int().min(0).default(1)),
     MONGO_URL: z.string({ error: "is required" }).trim().min(1, "is required"),
     JWT_SECRET: z.string({ error: "is required" }).min(1, "is required"),
     CORS_ORIGINS: commaList,
@@ -57,7 +58,7 @@ export const config = Object.freeze({
     mongoUrl: env.MONGO_URL,
     jwtSecret: env.JWT_SECRET,
     corsOrigins: env.CORS_ORIGINS.map(trimSlashes),
-    trustProxy: isProduction ? 1 : 0,
+    trustProxy: isProduction ? env.TRUST_PROXY_HOPS : 0,
     allowPasswordReset: env.ALLOW_PASSWORD_RESET_BY_EMAIL,
     storage: env.STORAGE_ENDPOINT
         ? {

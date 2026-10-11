@@ -8,7 +8,7 @@ import { FILE_EXTENSIONS } from "../constants/uploads.js";
 import { serviceUnavailable } from "../errors/app-error.js";
 import { logger } from "../utils/logger.js";
 
-// Stores public files in Supabase Storage through its S3 API; the bucket is set up in the Supabase dashboard.
+// Saves public files in Supabase Storage (create the bucket in the Supabase dashboard).
 const settings = config.storage;
 const client = settings
     ? new S3Client({
@@ -44,13 +44,13 @@ const checkBucketExists = async () => {
         const isBadCredentials = ["InvalidAccessKeyId", "SignatureDoesNotMatch"].includes(error?.name ?? error?.Code);
         if (status === 403 && !isBadCredentials) return;
         if (status === 404 || error?.name === "NotFound") {
-            throw new Error(`bucket "${settings.bucket}" does not exist; create it in the storage dashboard`);
+            throw new Error(`bucket "${settings.bucket}" does not exist; create it in the storage dashboard`, { cause: error });
         }
         throw error;
     }
 };
 
-// We retry until it works once, so a storage outage at startup doesn't turn uploads off for good.
+// Retries until it works once, so a storage outage at startup doesn't turn uploads off for good.
 const ensureBucketReady = async () => {
     if (bucketReady) return;
     bucketSetup ??= checkBucketExists()
@@ -104,7 +104,7 @@ const keyFromUrl = (url) => {
     return url.slice(settings.publicUrl.length + 1) || null;
 };
 
-// True only for files we stored; pasted links and outside images are never ours to delete.
+// True only for files stored by this server; pasted links and outside images are never deleted.
 export const isStoredUrl = (url) => keyFromUrl(url) !== null;
 
 // Never throws, because a leftover file must not fail the request.
@@ -123,7 +123,7 @@ export const deleteStoredFiles = async (...urls) => {
     }
 };
 
-// Runs `work` with a `store` function; if `work` fails, we delete the files it stored.
+// Runs `work` with a `store` function; if `work` fails, the files it stored are deleted.
 export const withStoredFiles = async (work) => {
     const storedUrls = [];
     const store = async (file, folder, owner) => {

@@ -1,10 +1,14 @@
 import { useCallback, useState } from "react";
 import { toast } from "react-toastify";
 
-import { getErrorMessage, getFieldErrors } from "@/utils/errors";
+import { getErrorMessage, getFieldErrors, isCancelled } from "@/utils/errors";
 
-// Focus the first field with an error once it has rendered.
-const focusFirstError = () => requestAnimationFrame(() => document.querySelector('[aria-invalid="true"]')?.focus());
+// Focus the first field with an error once it has rendered; a hidden file input hands focus to its visible button.
+const focusFirstError = () => requestAnimationFrame(() => {
+    const field = document.querySelector('[aria-invalid="true"]');
+    const target = field?.type === "file" ? field.closest("[data-picker]")?.querySelector("[data-picker-button]") ?? field : field;
+    target?.focus();
+});
 
 // Form values, per-field errors and whether the user changed anything.
 export const useForm = (initialValues) => {
@@ -39,8 +43,9 @@ export const useForm = (initialValues) => {
         return true;
     };
 
-    // Server errors go under their fields (renamed by `aliases`); anything else shows as a toast.
+    // Server errors go under their fields (renamed by `aliases`), others show as a toast; a cancelled request shows nothing.
     const showServerError = (error, fallback, aliases = {}) => {
+        if (isCancelled(error)) return;
         const shown = {};
         for (const [field, message] of Object.entries(getFieldErrors(error))) {
             const name = aliases[field] ?? field;

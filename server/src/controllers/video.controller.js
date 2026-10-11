@@ -22,17 +22,17 @@ export const listRelatedVideos = async (req, res) => {
 
 export const createVideo = async (req, res) => {
     const video = await videoService.createVideo(req.user.username, req.validated.body, req.uploads);
-    sendSuccess(res, video, { status: 201, message: "Video published." });
+    sendSuccess(res, video, 201);
 };
 
 export const updateVideo = async (req, res) => {
     const video = await videoService.updateVideo(req.validated.params.videoId, req.user.username, req.validated.body, req.uploads);
-    sendSuccess(res, video, { message: "Changes saved." });
+    sendSuccess(res, video);
 };
 
 export const deleteVideo = async (req, res) => {
     await videoService.deleteVideo(req.validated.params.videoId, req.user.username);
-    sendSuccess(res, null, { message: "Video deleted." });
+    sendSuccess(res);
 };
 
 export const setLike = async (req, res) => {

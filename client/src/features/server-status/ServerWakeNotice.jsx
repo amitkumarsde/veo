@@ -9,7 +9,7 @@ const ServerWakeNotice = () => {
     return (
         <div role="status" className="fixed inset-x-0 top-16 z-40 border-b border-border bg-surface">
             <IndeterminateBar className="bg-surface-3" />
-            <p className="mx-auto max-w-[1440px] px-4 py-2.5 text-center text-[13px] text-red-500 sm:px-8 dark:text-red-400">
+            <p className="mx-auto max-w-[1440px] px-4 py-2.5 text-center text-[13px] text-muted sm:px-8">
                 Starting the server… the first visit can take up to a minute.
             </p>
         </div>

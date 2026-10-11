@@ -1,4 +1,4 @@
-// Pre-deploy check: we load every server file and start the app without a database, using placeholder settings.
+// Pre-deploy check: loads every server file and starts the app with placeholder settings, no database.
 process.env.MONGO_URL ||= "mongodb://localhost:27017/veo-check";
 process.env.JWT_SECRET ||= "check-only-secret-that-is-at-least-32-characters";
 

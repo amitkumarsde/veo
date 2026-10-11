@@ -7,17 +7,17 @@ export const listComments = async (req, res) => {
 
 export const addComment = async (req, res) => {
     const comment = await commentService.addComment(req.validated.params.videoId, req.user.username, req.validated.body.text);
-    sendSuccess(res, comment, { status: 201, message: "Comment posted." });
+    sendSuccess(res, comment, 201);
 };
 
 export const editComment = async (req, res) => {
     const { videoId, commentId } = req.validated.params;
     const comment = await commentService.editComment(videoId, commentId, req.user.username, req.validated.body.text);
-    sendSuccess(res, comment, { message: "Comment updated." });
+    sendSuccess(res, comment);
 };
 
 export const deleteComment = async (req, res) => {
     const { videoId, commentId } = req.validated.params;
     await commentService.deleteComment(videoId, commentId, req.user.username);
-    sendSuccess(res, null, { message: "Comment deleted." });
+    sendSuccess(res);
 };

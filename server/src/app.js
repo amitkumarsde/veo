@@ -32,7 +32,8 @@ export const createApp = () => {
         const databaseUp = isDatabaseConnected();
         res.status(databaseUp ? 200 : 503).json({
             success: databaseUp,
-            data: { status: databaseUp ? "ok" : "degraded", database: databaseUp ? "up" : "down", uptimeSeconds: Math.round(process.uptime()) },
+            // `yourIp` helps check TRUST_PROXY_HOPS: it should be the caller's real IP, not the host's.
+            data: { status: databaseUp ? "ok" : "degraded", database: databaseUp ? "up" : "down", uptimeSeconds: Math.round(process.uptime()), yourIp: req.ip },
         });
     });
 
